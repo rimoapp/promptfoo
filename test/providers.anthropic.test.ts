@@ -3,6 +3,10 @@ import { AnthropicCompletionProvider, AnthropicMessagesProvider } from '../src/p
 import Anthropic, { APIError } from '@anthropic-ai/sdk';
 
 describe('AnthropicCompletionProvider', () => {
+  beforeEach(() => {
+    enableCache();
+  });
+
   afterEach(async () => {
     jest.clearAllMocks();
     await clearCache();
@@ -149,7 +153,7 @@ describe('AnthropicCompletionProvider', () => {
   });
 
   test('callApi with token usage calculation', async () => {
-    expect.assertions(2);
+    expect.assertions(1);
 
     const provider = new AnthropicCompletionProvider('claude-1');
     provider.anthropic.completions.create = jest.fn().mockResolvedValue({
@@ -159,12 +163,14 @@ describe('AnthropicCompletionProvider', () => {
 
     const result = await provider.callApi('Test prompt');
 
-    expect(result.tokenUsage).toMatchObject({
-      total: 150,
-      prompt: 50,
-      completion: 100,
+    expect(result).toMatchObject({
+      tokenUsage: {
+        total: 150,
+        prompt: 50,
+        completion: 100,
+      },
+      output: 'Test output',
     });
-    expect(result.output).toBe('Test output');
   });
 
   test('callApi with cost calculation', async () => {
@@ -185,6 +191,9 @@ describe('AnthropicCompletionProvider', () => {
 });
 
 describe('AnthropicMessagesProvider', () => {
+  beforeEach(() => {
+    enableCache();
+  });
   afterEach(async () => {
     jest.clearAllMocks();
     await clearCache();
@@ -301,16 +310,21 @@ describe('AnthropicMessagesProvider', () => {
     expect.assertions(2);
 
     const provider = new AnthropicMessagesProvider('claude-2.0');
-    const apiError = new APIError('API call failed', 500, {
-      error: { message: 'Internal Error', type: 'server_error' },
-    });
+    const apiError = new APIError(
+      500,
+      {
+        error: { message: 'Internal Error', type: 'server_error' },
+      },
+      'API call failed',
+      undefined,
+    );
     provider.anthropic.messages.create = jest.fn().mockRejectedValue(apiError);
 
     const result = await provider.callApi('Test message prompt');
 
     expect(provider.anthropic.messages.create).toHaveBeenCalledTimes(1);
     expect(result).toMatchObject({
-      error: 'API call error: Error: API call failed 500',
+      error: 'API call error: Internal Error, status 500, type server_error',
     });
   });
 });
