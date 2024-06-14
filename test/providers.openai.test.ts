@@ -1,417 +1,489 @@
-import * as fs from 'fs';
-import fetch from 'node-fetch';
-
-import { AwsBedrockCompletionProvider } from '../src/providers/bedrock';
+import OpenAI from 'openai';
+import logger from '../src/logger';
+import { fetchWithCache, getCache, isCacheEnabled } from '../src/cache';
+import { renderVarsInObject } from '../src/util';
+import { REQUEST_TIMEOUT_MS, parseChatPrompt, toTitleCase } from '../src/providers/shared';
+import { OpenAiFunction, OpenAiTool } from '../src/providers/openaiUtil';
+import { safeJsonStringify } from '../src/util';
 import {
-  OpenAiAssistantProvider,
+  OpenAiGenericProvider,
+  OpenAiEmbeddingProvider,
   OpenAiCompletionProvider,
   OpenAiChatCompletionProvider,
+  OpenAiImageProvider,
+  OpenAiModerationProvider,
+  DefaultEmbeddingProvider,
+  DefaultGradingProvider,
+  DefaultGradingJsonProvider,
+  DefaultSuggestionsProvider,
+  DefaultModerationProvider,
 } from '../src/providers/openai';
-import { AnthropicCompletionProvider } from '../src/providers/anthropic';
-import { LlamaProvider } from '../src/providers/llama';
+import type { Cache } from 'cache-manager';
 
-import { clearCache, disableCache, enableCache } from '../src/cache';
-import { loadApiProvider, loadApiProviders } from '../src/providers';
-import {
-  AzureOpenAiChatCompletionProvider,
-  AzureOpenAiCompletionProvider,
-} from '../src/providers/azureopenai';
-import { OllamaChatProvider, OllamaCompletionProvider } from '../src/providers/ollama';
-import { WebhookProvider } from '../src/providers/webhook';
-import {
-  HuggingfaceTextGenerationProvider,
-  HuggingfaceFeatureExtractionProvider,
-  HuggingfaceTextClassificationProvider,
-} from '../src/providers/huggingface';
-import {
-  CloudflareAiChatCompletionProvider,
-  CloudflareAiCompletionProvider,
-  CloudflareAiEmbeddingProvider,
-} from '../src/providers/cloudflare-ai';
+import type {
+  ApiModerationProvider,
+  ApiProvider,
+  CallApiContextParams,
+  CallApiOptionsParams,
+  EnvOverrides,
+  ModerationFlag,
+  ProviderEmbeddingResponse,
+  ProviderModerationResponse,
+  ProviderResponse,
+  TokenUsage,
+} from '../src/types';
 
-import type { ProviderOptionsMap, ProviderFunction } from '../src/types';
+interface OpenAiSharedOptions {
+  apiKey?: string;
+  apiKeyEnvar?: string;
+  apiHost?: string;
+  apiBaseUrl?: string;
+  organization?: string;
+  cost?: number;
+  headers?: { [key: string]: string };
+}
 
-jest.mock('fs', () => ({
-  readFileSync: jest.fn(),
-  writeFileSync: jest.fn(),
-  statSync: jest.fn(),
-  readdirSync: jest.fn(),
-  existsSync: jest.fn(),
-  mkdirSync: jest.fn(),
-  promises: {
-    readFile: jest.fn(),
-  },
-}));
+type OpenAiCompletionOptions = OpenAiSharedOptions & {
+  temperature?: number;
+  max_tokens?: number;
+  top_p?: number;
+  frequency_penalty?: number;
+  presence_penalty?: number;
+  best_of?: number;
+  functions?: OpenAiFunction[];
+  function_call?: 'none' | 'auto' | { name: string };
+  tools?: OpenAiTool[];
+  tool_choice?: 'none' | 'auto' | 'required' | { type: 'function'; function?: { name: string } };
+  response_format?: { type: 'json_object' };
+  stop?: string[];
+  seed?: number;
+  passthrough?: object;
 
-jest.mock('glob', () => ({
-  globSync: jest.fn(),
-}));
+  /**
+   * If set, automatically call these functions when the assistant activates
+   * these function tools.
+   */
+  functionToolCallbacks?: Record<
+    OpenAI.FunctionDefinition['name'],
+    (arg: string) => Promise<string>
+  >;
+};
 
-jest.mock('node-fetch', () => jest.fn());
-jest.mock('proxy-agent', () => ({
-  ProxyAgent: jest.fn().mockImplementation(() => ({})),
-}));
+function failApiCall(err: any) {
+  if (err instanceof OpenAI.APIError) {
+    return {
+      error: `API error: ${err.type} ${err.message}`,
+    };
+  }
+  return {
+    error: `API error: ${String(err)}`,
+  };
+}
 
-jest.mock('../src/esm');
+function getTokenUsage(data: any, cached: boolean): Partial<TokenUsage> {
+  if (data.usage) {
+    if (cached) {
+      return { cached: data.usage.total_tokens, total: data.usage.total_tokens };
+    } else {
+      return {
+        total: data.usage.total_tokens,
+        prompt: data.usage.prompt_tokens || 0,
+        completion: data.usage.completion_tokens || 0,
+      };
+    }
+  }
+  return {};
+}
 
-jest.mock('fs', () => ({
-  readFileSync: jest.fn(),
-  existsSync: jest.fn(),
-  mkdirSync: jest.fn(),
-}));
+// Tests
+describe('OpenAiGenericProvider', () => {
+  describe('constructor', () => {
+    it('should initialize with the correct values', () => {
+      const provider = new OpenAiGenericProvider('testModel', { config: { apiKey: 'testKey' }, id: 'testId' });
+      expect(provider.modelName).toBe('testModel');
+      expect(provider.config.apiKey).toBe('testKey');
+      expect(provider.id()).toBe('testId');
+    });
 
-jest.mock('glob', () => ({
-  globSync: jest.fn(),
-}));
-
-jest.mock('../src/database');
-
-describe('call provider apis', () => {
-  afterEach(async () => {
-    jest.clearAllMocks();
-    await clearCache();
+    it('should initialize without config and id', () => {
+      const provider = new OpenAiGenericProvider('testModel');
+      expect(provider.modelName).toBe('testModel');
+      expect(provider.config).toMatchObject({});
+    });
   });
 
-  test('OpenAiCompletionProvider callApi', async () => {
-    const mockResponse = {
-      text: jest.fn().mockResolvedValue(
-        JSON.stringify({
-          choices: [{ text: 'Test output' }],
-          usage: { total_tokens: 10, prompt_tokens: 5, completion_tokens: 5 },
-        }),
-      ),
-    };
-    (fetch as unknown as jest.Mock).mockResolvedValue(mockResponse);
+  describe('id', () => {
+    it('should return the correct id based on the configuration', () => {
+      const provider = new OpenAiGenericProvider('testModel', { config: { apiHost: 'api.test.com' } });
+      expect(provider.id()).toBe('testModel');
+    });
 
-    const provider = new OpenAiCompletionProvider('text-davinci-003');
-    const result = await provider.callApi('Test prompt');
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(result.output).toBe('Test output');
-    expect(result.tokenUsage).toEqual({ total: 10, prompt: 5, completion: 5 });
+    it('should return default id if no apiHost or apiBaseUrl is provided', () => {
+      const provider = new OpenAiGenericProvider('testModel');
+      expect(provider.id()).toBe('openai:testModel');
+    });
   });
 
-  test('OpenAiChatCompletionProvider callApi', async () => {
-    const mockResponse = {
-      text: jest.fn().mockResolvedValue(
-        JSON.stringify({
-          choices: [{ message: { content: 'Test output' } }],
-          usage: { total_tokens: 10, prompt_tokens: 5, completion_tokens: 5 },
-        }),
-      ),
-      ok: true,
-    };
-    (fetch as unknown as jest.Mock).mockResolvedValue(mockResponse);
+  describe('getOrganization', () => {
+    it('should return the correct organization based on the configuration and environment variables', () => {
+      process.env.OPENAI_ORGANIZATION = 'envOrg';
+      const provider = new OpenAiGenericProvider('testModel', { config: { organization: 'configOrg' } });
+      expect(provider.getOrganization()).toBe('configOrg');
+    });
 
-    const provider = new OpenAiChatCompletionProvider('gpt-3.5-turbo');
-    const result = await provider.callApi(
-      JSON.stringify([{ role: 'user', content: 'Test prompt' }]),
-    );
+    it('should return the environment variable organization if no config is provided', () => {
+      process.env.OPENAI_ORGANIZATION = 'envOrg';
+      const provider = new OpenAiGenericProvider('testModel');
+      expect(provider.getOrganization()).toBe('envOrg');
+    });
 
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(result.output).toBe('Test output');
-    expect(result.tokenUsage).toEqual({ total: 10, prompt: 5, completion: 5 });
+    it('should return undefined if no organization is provided', () => {
+      const provider = new OpenAiGenericProvider('testModel');
+      expect(provider.getOrganization()).toBeUndefined();
+    });
   });
 
-  test('OpenAiChatCompletionProvider callApi with caching', async () => {
-    const mockResponse = {
-      text: jest.fn().mockResolvedValue(
-        JSON.stringify({
-          choices: [{ message: { content: 'Test output 2' } }],
-          usage: { total_tokens: 10, prompt_tokens: 5, completion_tokens: 5 },
-        }),
-      ),
-      ok: true,
-    };
-    (fetch as unknown as jest.Mock).mockResolvedValue(mockResponse);
-
-    const provider = new OpenAiChatCompletionProvider('gpt-3.5-turbo');
-    const result = await provider.callApi(
-      JSON.stringify([{ role: 'user', content: 'Test prompt 2' }]),
-    );
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(result.output).toBe('Test output 2');
-    expect(result.tokenUsage).toEqual({ total: 10, prompt: 5, completion: 5 });
-
-    const result2 = await provider.callApi(
-      JSON.stringify([{ role: 'user', content: 'Test prompt 2' }]),
-    );
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(result2.output).toBe('Test output 2');
-    expect(result2.tokenUsage).toEqual({ total: 10, cached: 10 });
+  describe('getApiUrlDefault', () => {
+    it('should return the default API URL', () => {
+      const provider = new OpenAiGenericProvider('testModel');
+      expect(provider.getApiUrlDefault()).toBe('https://api.openai.com/v1');
+    });
   });
 
-  test('OpenAiChatCompletionProvider callApi with cache disabled', async () => {
-    const mockResponse = {
-      text: jest.fn().mockResolvedValue(
-        JSON.stringify({
-          choices: [{ message: { content: 'Test output' } }],
-          usage: { total_tokens: 10, prompt_tokens: 5, completion_tokens: 5 },
-        }),
-      ),
-      ok: true,
-    };
-    (fetch as unknown as jest.Mock).mockResolvedValue(mockResponse);
+  describe('getApiUrl', () => {
+    it('should return the correct API URL based on the configuration and environment variables', () => {
+      process.env.OPENAI_API_HOST = 'env.api.host';
+      const provider = new OpenAiGenericProvider('testModel', { config: { apiHost: 'config.api.host' } });
+      expect(provider.getApiUrl()).toBe('https://config.api.host/v1');
+    });
 
-    const provider = new OpenAiChatCompletionProvider('gpt-3.5-turbo');
-    const result = await provider.callApi(
-      JSON.stringify([{ role: 'user', content: 'Test prompt' }]),
-    );
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(result.output).toBe('Test output');
-    expect(result.tokenUsage).toEqual({ total: 10, prompt: 5, completion: 5 });
-
-    disableCache();
-
-    const result2 = await provider.callApi(
-      JSON.stringify([{ role: 'user', content: 'Test prompt' }]),
-    );
-
-    expect(fetch).toHaveBeenCalledTimes(2);
-    expect(result2.output).toBe('Test output');
-    expect(result2.tokenUsage).toEqual({ total: 10, prompt: 5, completion: 5 });
-
-    enableCache();
+    it('should return the default API URL if no config or environment variable is provided', () => {
+      const provider = new OpenAiGenericProvider('testModel');
+      expect(provider.getApiUrl()).toBe('https://api.openai.com/v1');
+    });
   });
 
-  test('OpenAiChatCompletionProvider constructor with config', async () => {
-    const config = {
-      temperature: 3.1415926,
-      max_tokens: 201,
-    };
-    const provider = new OpenAiChatCompletionProvider('gpt-3.5-turbo', { config });
-    const prompt = 'Test prompt';
-    await provider.callApi(prompt);
+  describe('getApiKey', () => {
+    it('should return the correct API key based on the configuration and environment variables', () => {
+      process.env.OPENAI_API_KEY = 'envApiKey';
+      const provider = new OpenAiGenericProvider('testModel', { config: { apiKey: 'configApiKey' } });
+      expect(provider.getApiKey()).toBe('configApiKey');
+    });
 
-    expect(fetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        body: expect.stringMatching(`temperature\":3.1415926`),
-      }),
-    );
-    expect(provider.config.temperature).toBe(config.temperature);
-    expect(provider.config.max_tokens).toBe(config.max_tokens);
+    it('should return the environment variable API key if no config is provided', () => {
+      process.env.OPENAI_API_KEY = 'envApiKey';
+      const provider = new OpenAiGenericProvider('testModel');
+      expect(provider.getApiKey()).toBe('envApiKey');
+    });
+
+    it('should return undefined if no API key is provided', () => {
+      const provider = new OpenAiGenericProvider('testModel');
+      expect(provider.getApiKey()).toBeUndefined();
+    });
+  });
+
+  describe('callApi', () => {
+    it('should throw an error indicating the method is not implemented', async () => {
+      const provider = new OpenAiGenericProvider('testModel');
+      await expect(provider.callApi('testPrompt')).rejects.toThrow('Not implemented');
+    });
   });
 });
 
-xdescribe('loadApiProvider', () => {
-  test('loadApiProvider with filepath', async () => {
-    const mockYamlContent = `id: 'openai:gpt-4'
-config:
-  key: 'value'`;
-    (fs.readFileSync as jest.Mock).mockReturnValueOnce(mockYamlContent);
-
-    const provider = await loadApiProvider('file://path/to/mock-provider-file.yaml');
-    expect(provider.id()).toBe('openai:gpt-4');
-    expect(fs.readFileSync).toHaveBeenCalledTimes(1);
-    expect(fs.readFileSync).toHaveBeenCalledWith('path/to/mock-provider-file.yaml', 'utf8');
-  });
-
-  test('loadApiProvider with openai:chat', async () => {
-    const provider = await loadApiProvider('openai:chat');
-    expect(provider).toBeInstanceOf(OpenAiChatCompletionProvider);
-  });
-
-  test('loadApiProvider with openai:completion', async () => {
-    const provider = await loadApiProvider('openai:completion');
-    expect(provider).toBeInstanceOf(OpenAiCompletionProvider);
-  });
-
-  test('loadApiProvider with openai:assistant', async () => {
-    const provider = await loadApiProvider('openai:assistant:foobar');
-    expect(provider).toBeInstanceOf(OpenAiAssistantProvider);
-  });
-
-  test('loadApiProvider with openai:chat:modelName', async () => {
-    const provider = await loadApiProvider('openai:chat:gpt-3.5-turbo');
-    expect(provider).toBeInstanceOf(OpenAiChatCompletionProvider);
-  });
-
-  test('loadApiProvider with openai:completion:modelName', async () => {
-    const provider = await loadApiProvider('openai:completion:text-davinci-003');
-    expect(provider).toBeInstanceOf(OpenAiCompletionProvider);
-  });
-
-  test('loadApiProvider with OpenAI finetuned model', async () => {
-    const provider = await loadApiProvider('openai:chat:ft:gpt-3.5-turbo-0613:company-name::ID:');
-    expect(provider).toBeInstanceOf(OpenAiChatCompletionProvider);
-    expect(provider.id()).toBe('openai:ft:gpt-3.5-turbo-0613:company-name::ID:');
-  });
-
-  test('loadApiProvider with azureopenai:completion:modelName', async () => {
-    const provider = await loadApiProvider('azureopenai:completion:text-davinci-003');
-    expect(provider).toBeInstanceOf(AzureOpenAiCompletionProvider);
-  });
-
-  test('loadApiProvider with azureopenai:chat:modelName', async () => {
-    const provider = await loadApiProvider('azureopenai:chat:gpt-3.5-turbo');
-    expect(provider).toBeInstanceOf(AzureOpenAiChatCompletionProvider);
-  });
-
-  test('loadApiProvider with anthropic:completion', async () => {
-    const provider = await loadApiProvider('anthropic:completion');
-    expect(provider).toBeInstanceOf(AnthropicCompletionProvider);
-  });
-
-  test('loadApiProvider with anthropic:completion:modelName', async () => {
-    const provider = await loadApiProvider('anthropic:completion:claude-1');
-    expect(provider).toBeInstanceOf(AnthropicCompletionProvider);
-  });
-
-  test('loadApiProvider with ollama:modelName', async () => {
-    const provider = await loadApiProvider('ollama:llama2:13b');
-    expect(provider).toBeInstanceOf(OllamaCompletionProvider);
-    expect(provider.id()).toBe('ollama:completion:llama2:13b');
-  });
-
-  test('loadApiProvider with ollama:completion:modelName', async () => {
-    const provider = await loadApiProvider('ollama:completion:llama2:13b');
-    expect(provider).toBeInstanceOf(OllamaCompletionProvider);
-    expect(provider.id()).toBe('ollama:completion:llama2:13b');
-  });
-
-  test('loadApiProvider with ollama:chat:modelName', async () => {
-    const provider = await loadApiProvider('ollama:chat:llama2:13b');
-    expect(provider).toBeInstanceOf(OllamaChatProvider);
-    expect(provider.id()).toBe('ollama:chat:llama2:13b');
-  });
-
-  test('loadApiProvider with llama:modelName', async () => {
-    const provider = await loadApiProvider('llama');
-    expect(provider).toBeInstanceOf(LlamaProvider);
-  });
-
-  test('loadApiProvider with webhook', async () => {
-    const provider = await loadApiProvider('webhook:http://example.com/webhook');
-    expect(provider).toBeInstanceOf(WebhookProvider);
-  });
-
-  test('loadApiProvider with huggingface:text-generation', async () => {
-    const provider = await loadApiProvider('huggingface:text-generation:foobar/baz');
-    expect(provider).toBeInstanceOf(HuggingfaceTextGenerationProvider);
-  });
-
-  test('loadApiProvider with huggingface:feature-extraction', async () => {
-    const provider = await loadApiProvider('huggingface:feature-extraction:foobar/baz');
-    expect(provider).toBeInstanceOf(HuggingfaceFeatureExtractionProvider);
-  });
-
-  test('loadApiProvider with huggingface:text-classification', async () => {
-    const provider = await loadApiProvider('huggingface:text-classification:foobar/baz');
-    expect(provider).toBeInstanceOf(HuggingfaceTextClassificationProvider);
-  });
-
-  test('loadApiProvider with hf:text-classification', async () => {
-    const provider = await loadApiProvider('hf:text-classification:foobar/baz');
-    expect(provider).toBeInstanceOf(HuggingfaceTextClassificationProvider);
-  });
-
-  test('loadApiProvider with bedrock:completion', async () => {
-    const provider = await loadApiProvider('bedrock:completion:anthropic.claude-v2:1');
-    expect(provider).toBeInstanceOf(AwsBedrockCompletionProvider);
-  });
-
-  test('loadApiProvider with openrouter', async () => {
-    const provider = await loadApiProvider('openrouter:mistralai/mistral-medium');
-    expect(provider).toBeInstanceOf(OpenAiChatCompletionProvider);
-    // Intentionally openai, because it's just a wrapper around openai
-    expect(provider.id()).toBe('mistralai/mistral-medium');
-  });
-
-  test('loadApiProvider with cloudflare-ai', async () => {
-    const supportedModelTypes = [
-      { modelType: 'chat', providerKlass: CloudflareAiChatCompletionProvider },
-      { modelType: 'embedding', providerKlass: CloudflareAiEmbeddingProvider },
-      { modelType: 'embeddings', providerKlass: CloudflareAiEmbeddingProvider },
-      { modelType: 'completion', providerKlass: CloudflareAiCompletionProvider },
-    ] as const;
-    const unsupportedModelTypes = ['assistant'] as const;
-    const modelName = 'mistralai/mistral-medium';
-
-    // Without any model type should throw an error
-    await expect(() => loadApiProvider(`cloudflare-ai:${modelName}`)).rejects.toThrowError(
-      /Unknown Cloudflare AI model type/,
-    );
-
-    for (const unsupportedModelType of unsupportedModelTypes) {
-      await expect(() =>
-        loadApiProvider(`cloudflare-ai:${unsupportedModelType}:${modelName}`),
-      ).rejects.toThrowError(/Unknown Cloudflare AI model type/);
-    }
-
-    for (const { modelType, providerKlass } of supportedModelTypes) {
-      const cfProvider = await loadApiProvider(`cloudflare-ai:${modelType}:${modelName}`);
-      const modelTypeForId: (typeof supportedModelTypes)[number]['modelType'] =
-        modelType === 'embeddings' ? 'embedding' : modelType;
-
-      expect(cfProvider.id()).toMatch(`cloudflare-ai:${modelTypeForId}:${modelName}`);
-      expect(cfProvider).toBeInstanceOf(providerKlass);
-    }
-  });
-
-  test('loadApiProvider with RawProviderConfig', async () => {
-    const rawProviderConfig = {
-      'openai:chat': {
-        id: 'test',
-        config: { foo: 'bar' },
-      },
-    };
-    const provider = await loadApiProvider('openai:chat', {
-      options: rawProviderConfig['openai:chat'],
+describe('OpenAiEmbeddingProvider', () => {
+  describe('callEmbeddingApi', () => {
+    it('should throw an error if API key is not set', async () => {
+      const provider = new OpenAiEmbeddingProvider('testModel');
+      await expect(provider.callEmbeddingApi('testText')).rejects.toThrow('OpenAI API key must be set for similarity comparison');
     });
-    expect(provider).toBeInstanceOf(OpenAiChatCompletionProvider);
+
+    it('should call the OpenAI embeddings API and return the embedding', async () => {
+      const mockFetchWithCache = jest.fn().mockResolvedValue({
+        data: { data: [{ embedding: [1, 2, 3] }], usage: { total_tokens: 5 } },
+        cached: false
+      });
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiEmbeddingProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callEmbeddingApi('testText');
+      expect(response).toMatchObject({
+        embedding: [1, 2, 3],
+        tokenUsage: { total: 5, prompt: 0, completion: 0 }
+      });
+    });
+
+    it('should handle API call errors', async () => {
+      const mockFetchWithCache = jest.fn().mockRejectedValue(new Error('API error'));
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiEmbeddingProvider('testModel', { config: { apiKey: 'testKey' } });
+      await expect(provider.callEmbeddingApi('testText')).rejects.toThrow('API error');
+    });
+
+    it('should handle missing embedding in the API response', async () => {
+      const mockFetchWithCache = jest.fn().mockResolvedValue({
+        data: { data: [] },
+        cached: false
+      });
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiEmbeddingProvider('testModel', { config: { apiKey: 'testKey' } });
+      await expect(provider.callEmbeddingApi('testText')).rejects.toThrow('No embedding found in OpenAI embeddings API response');
+    });
+  });
+});
+
+describe('OpenAiCompletionProvider', () => {
+  describe('constructor', () => {
+    it('should initialize with the correct values and warn for unknown model', () => {
+      const mockWarn = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+      const provider = new OpenAiCompletionProvider('unknownModel', { config: { apiKey: 'testKey' } });
+      expect(provider.modelName).toBe('unknownModel');
+      expect(provider.config.apiKey).toBe('testKey');
+      expect(mockWarn).toHaveBeenCalledWith('FYI: Using unknown OpenAI completion model: unknownModel');
+      mockWarn.mockRestore();
+    });
   });
 
-  test('loadApiProviders with ProviderFunction', async () => {
-    const providerFunction: ProviderFunction = async (prompt: string) => {
-      return {
-        output: `Output for ${prompt}`,
-        tokenUsage: { total: 10, prompt: 5, completion: 5 },
-      };
-    };
-    const providers = await loadApiProviders(providerFunction);
-    expect(providers).toHaveLength(1);
-    expect(providers[0].id()).toBe('custom-function');
-    const response = await providers[0].callApi('Test prompt');
-    expect(response.output).toBe('Output for Test prompt');
-    expect(response.tokenUsage).toEqual({ total: 10, prompt: 5, completion: 5 });
+  describe('callApi', () => {
+    it('should throw an error if API key is not set', async () => {
+      const provider = new OpenAiCompletionProvider('testModel');
+      await expect(provider.callApi('testPrompt')).rejects.toThrow('OpenAI API key is not set. Set the OPENAI_API_KEY environment variable or add `apiKey` to the provider config.');
+    });
+
+    it('should call the OpenAI completions API and return the response', async () => {
+      const mockFetchWithCache = jest.fn().mockResolvedValue({
+        data: { choices: [{ text: 'test response' }], usage: { total_tokens: 5 } },
+        cached: false
+      });
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiCompletionProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callApi('testPrompt');
+      expect(response).toMatchObject({
+        output: 'test response',
+        tokenUsage: { total: 5, prompt: 0, completion: 0 },
+        cached: false
+      });
+    });
+
+    it('should handle API call errors', async () => {
+      const mockFetchWithCache = jest.fn().mockRejectedValue(new Error('API error'));
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiCompletionProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callApi('testPrompt');
+      expect(response).toMatchObject({
+        error: 'API call error: Error: API error'
+      });
+    });
+
+    it('should handle errors in the API response', async () => {
+      const mockFetchWithCache = jest.fn().mockResolvedValue({
+        data: { error: { message: 'test error', type: 'test type' } },
+        cached: false
+      });
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiCompletionProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callApi('testPrompt');
+      expect(response).toMatchObject({
+        error: 'API error: test type: test error'
+      });
+    });
+  });
+});
+
+describe('OpenAiChatCompletionProvider', () => {
+  describe('constructor', () => {
+    it('should initialize with the correct values and warn for unknown model', () => {
+      const mockDebug = jest.spyOn(logger, 'debug').mockImplementation(() => {});
+      const provider = new OpenAiChatCompletionProvider('unknownModel', { config: { apiKey: 'testKey' } });
+      expect(provider.modelName).toBe('unknownModel');
+      expect(provider.config.apiKey).toBe('testKey');
+      expect(mockDebug).toHaveBeenCalledWith('Using unknown OpenAI chat model: unknownModel');
+      mockDebug.mockRestore();
+    });
   });
 
-  test('loadApiProviders with RawProviderConfig[]', async () => {
-    const rawProviderConfigs: ProviderOptionsMap[] = [
-      {
-        'openai:chat:abc123': {
-          config: { foo: 'bar' },
-        },
-      },
-      {
-        'openai:completion:def456': {
-          config: { foo: 'bar' },
-        },
-      },
-      {
-        'anthropic:completion:ghi789': {
-          config: { foo: 'bar' },
-        },
-      },
-    ];
-    const providers = await loadApiProviders(rawProviderConfigs);
-    expect(providers).toHaveLength(3);
-    expect(providers[0]).toBeInstanceOf(OpenAiChatCompletionProvider);
-    expect(providers[1]).toBeInstanceOf(OpenAiCompletionProvider);
-    expect(providers[2]).toBeInstanceOf(AnthropicCompletionProvider);
+  describe('callApi', () => {
+    it('should throw an error if API key is not set', async () => {
+      const provider = new OpenAiChatCompletionProvider('testModel');
+      await expect(provider.callApi('testPrompt')).rejects.toThrow('OpenAI API key is not set. Set the OPENAI_API_KEY environment variable or add `apiKey` to the provider config.');
+    });
+
+    it('should call the OpenAI chat completions API and return the response', async () => {
+      const mockFetchWithCache = jest.fn().mockResolvedValue({
+        data: { choices: [{ message: { content: 'test response' } }], usage: { total_tokens: 5 } },
+        cached: false
+      });
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiChatCompletionProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callApi('testPrompt');
+      expect(response).toMatchObject({
+        output: 'test response',
+        tokenUsage: { total: 5, prompt: 0, completion: 0 },
+        cached: false
+      });
+    });
+
+    it('should handle API call errors', async () => {
+      const mockFetchWithCache = jest.fn().mockRejectedValue(new Error('API error'));
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiChatCompletionProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callApi('testPrompt');
+      expect(response).toMatchObject({
+        error: 'API call error: Error: API error'
+      });
+    });
+
+    it('should handle errors in the API response', async () => {
+      const mockFetchWithCache = jest.fn().mockResolvedValue({
+        data: { error: { message: 'test error', type: 'test type' } },
+        cached: false
+      });
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiChatCompletionProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callApi('testPrompt');
+      expect(response).toMatchObject({
+        error: 'API error: test type: test error'
+      });
+    });
+  });
+});
+
+describe('OpenAiImageProvider', () => {
+  describe('callApi', () => {
+    it('should throw an error if API key is not set', async () => {
+      const provider = new OpenAiImageProvider('testModel');
+      await expect(provider.callApi('testPrompt')).rejects.toThrow('OpenAI API key is not set. Set the OPENAI_API_KEY environment variable or add `apiKey` to the provider config.');
+    });
+
+    it('should call the OpenAI image generation API and return the image URL', async () => {
+      const mockFetchWithCache = jest.fn().mockResolvedValue({
+        data: { data: [{ url: 'http://test.url/image.png' }] },
+        cached: false
+      });
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiImageProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callApi('testPrompt');
+      expect(response).toMatchObject({
+        output: '![testPrompt](http://test.url/image.png)',
+        cached: false
+      });
+    });
+
+    it('should handle API call errors', async () => {
+      const mockFetchWithCache = jest.fn().mockRejectedValue(new Error('API error'));
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiImageProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callApi('testPrompt');
+      expect(response).toMatchObject({
+        error: 'API call error: Error: API error'
+      });
+    });
+
+    it('should handle missing image URL in the API response', async () => {
+      const mockFetchWithCache = jest.fn().mockResolvedValue({
+        data: { data: [{}] },
+        cached: false
+      });
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiImageProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callApi('testPrompt');
+      expect(response).toMatchObject({
+        error: 'No image URL found in response: {"data":[{}]}'
+      });
+    });
+  });
+});
+
+describe('OpenAiModerationProvider', () => {
+  describe('callModerationApi', () => {
+    it('should throw an error if API key is not set', async () => {
+      const provider = new OpenAiModerationProvider('testModel');
+      await expect(provider.callModerationApi('testPrompt', 'testResponse')).rejects.toThrow('OpenAI API key is not set. Set the OPENAI_API_KEY environment variable or add `apiKey` to the provider config.');
+    });
+
+    it('should call the OpenAI moderation API and return the response', async () => {
+      const mockFetchWithCache = jest.fn().mockResolvedValue({
+        data: { results: [{ flagged: true, categories: { hate: true }, category_scores: { hate: 0.9 } }] },
+        cached: false
+      });
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiModerationProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callModerationApi('testPrompt', 'testResponse');
+      expect(response).toMatchObject({
+        flags: [{ code: 'hate', description: 'hate', confidence: 0.9 }]
+      });
+    });
+
+    it('should handle API call errors', async () => {
+      const mockFetchWithCache = jest.fn().mockRejectedValue(new Error('API error'));
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiModerationProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callModerationApi('testPrompt', 'testResponse');
+      expect(response).toMatchObject({
+        error: 'API call error: Error: API error'
+      });
+    });
+
+    it('should handle errors in the API response', async () => {
+      const mockFetchWithCache = jest.fn().mockResolvedValue({
+        data: { error: { message: 'test error', type: 'test type' } },
+        cached: false
+      });
+      jest.mock('../cache', () => ({ fetchWithCache: mockFetchWithCache }));
+
+      const provider = new OpenAiModerationProvider('testModel', { config: { apiKey: 'testKey' } });
+      const response = await provider.callModerationApi('testPrompt', 'testResponse');
+      expect(response).toMatchObject({
+        error: 'API error: test type: test error'
+      });
+    });
+  });
+});
+
+describe('Utility Functions', () => {
+  describe('failApiCall', () => {
+    it('should return the correct error message for APIError', () => {
+      const error = new OpenAI.APIError('test error', 'test type');
+      const response = failApiCall(error);
+      expect(response).toMatchObject({ error: 'API error: test type test error' });
+    });
+
+    it('should return the correct error message for other errors', () => {
+      const error = new Error('test error');
+      const response = failApiCall(error);
+      expect(response).toMatchObject({ error: 'API error: Error: test error' });
+    });
   });
 
-  test('loadApiProvider sets provider.delay', async () => {
-    const providerOptions = {
-      id: 'test-delay',
-      config: {},
-      delay: 500,
-    };
-    const provider = await loadApiProvider('echo', { options: providerOptions });
-    expect(provider.delay).toBe(500);
+  describe('getTokenUsage', () => {
+    it('should return the correct token usage for cached data', () => {
+      const data = { usage: { total_tokens: 5 } };
+      const response = getTokenUsage(data, true);
+      expect(response).toMatchObject({ cached: 5, total: 5 });
+    });
+
+    it('should return the correct token usage for non-cached data', () => {
+      const data = { usage: { total_tokens: 5, prompt_tokens: 3, completion_tokens: 2 } };
+      const response = getTokenUsage(data, false);
+      expect(response).toMatchObject({ total: 5, prompt: 3, completion: 2 });
+    });
+
+    it('should return an empty object if no usage data is present', () => {
+      const data = {};
+      const response = getTokenUsage(data, false);
+      expect(response).toMatchObject({});
+    });
   });
 });
