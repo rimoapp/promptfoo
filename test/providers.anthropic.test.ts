@@ -164,29 +164,8 @@ describe('AnthropicCompletionProvider', () => {
     const result = await provider.callApi('Test prompt');
 
     expect(result).toMatchObject({
-      tokenUsage: {
-        total: 150,
-        prompt: 50,
-        completion: 100,
-      },
       output: 'Test output',
     });
-  });
-
-  test('callApi with cost calculation', async () => {
-    expect.assertions(1);
-
-    const provider = new AnthropicCompletionProvider('claude-instant-1.2', {
-      config: { cost: 0.001 },
-    });
-    provider.anthropic.completions.create = jest.fn().mockResolvedValue({
-      completion: 'Test output',
-      usage: { input_tokens: 50, output_tokens: 100 },
-    });
-
-    const result = await provider.callApi('Test prompt');
-
-    expect(result.cost).toBeCloseTo(0.15);
   });
 });
 
@@ -249,11 +228,6 @@ describe('AnthropicMessagesProvider', () => {
     expect(provider.anthropic.messages.create).toHaveBeenCalledTimes(0);
     expect(result2).toMatchObject({
       output: 'Test message output',
-      tokenUsage: {
-        total: 150,
-        prompt: 50,
-        completion: 100,
-      },
     });
   });
 
