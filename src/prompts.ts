@@ -37,12 +37,11 @@ export function readProviderPromptMap(
 ): TestSuite['providerPromptMap'] {
   const ret: Record<string, string[]> = {};
 
-  console.warn('---------------------')
-  console.warn('config.providers', config.providers)
-  console.warn('---------------------')
-  console.warn('parsedPrompts', parsedPrompts)
-  console.warn('---------------------')
-
+  console.warn('---------------------');
+  console.warn('config.providers', config.providers);
+  console.warn('---------------------');
+  console.warn('parsedPrompts', parsedPrompts);
+  console.warn('---------------------');
 
   if (!config.providers) {
     return ret;
@@ -62,7 +61,7 @@ export function readProviderPromptMap(
   }
 
   for (const provider of config.providers) {
-    console.warn('provider', provider)
+    console.warn('provider', provider);
     if (typeof provider === 'object') {
       // It's either a ProviderOptionsMap or a ProviderOptions
       if (provider.id) {
@@ -80,12 +79,12 @@ export function readProviderPromptMap(
         const rawProvider = provider as ProviderOptionsMap;
         const originalId = Object.keys(rawProvider)[0];
         const providerObject = rawProvider[originalId];
-        const id = providerObject.label ||providerObject.id || originalId;
+        const id = providerObject.label || providerObject.id || originalId;
         ret[id] = rawProvider[originalId].prompts || allPrompts;
       }
     }
   }
-  console.warn('ret', ret)
+  console.warn('ret', ret);
   return ret;
 }
 
