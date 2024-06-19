@@ -2,13 +2,13 @@
 
 This website is built using [Docusaurus 2](https://docusaurus.io/), a modern static website generator.
 
-### Installation
+## Installation
 
 ```sh
 npm install
 ```
 
-### Local Development
+## Local Development
 
 ```sh
 npm start
@@ -16,7 +16,7 @@ npm start
 
 This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
 
-### Build
+## Build
 
 ```sh
 npm run build
