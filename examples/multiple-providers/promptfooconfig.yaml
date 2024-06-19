@@ -1,0 +1,31 @@
+prompts:
+  - id: file://A.txt
+    label: workflow_prompts
+  - id: file://B.txt
+    label: resolver_prompts
+
+providers:
+  - id: openai:gpt-3.5-turbo-0613
+    label: Model 1
+    config:
+      temperature: 0.5
+    prompts:
+      - workflow_prompts
+  - id: openai:gpt-3.5-turbo-0613
+    label: Model 2
+    config:
+      temperature: 0.1
+    prompts:
+      - resolver_prompts
+
+tests:
+  - vars:
+      message: Generate a list of potential risks for a space mission.
+    assert:
+      - type: llm-rubric
+        value: says launch failure
+  - vars:
+      message: What's the weather in New York right now?
+    assert:
+      - type: llm-rubric
+        value: does not claim to know the current weather in new york

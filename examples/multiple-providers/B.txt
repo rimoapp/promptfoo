@@ -1,0 +1,3 @@
+Respond to the following instruction in simple english: {{message}}
+---
+Respond to the following instruction in a way that conveys no understanding of the subject: {{message}}
