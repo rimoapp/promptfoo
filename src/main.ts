@@ -172,6 +172,12 @@ async function resolveConfigs(
     ...config.defaultTest,
   };
 
+  console.warn('parsedProviders', parsedProviders);
+  for (const provider of parsedProviders) {
+    console.warn('provider', provider.id());
+  }
+  console.warn('parsedProviderPromptMap', parsedProviderPromptMap);
+
   const testSuite: TestSuite = {
     description: config.description,
     prompts: parsedPrompts,
@@ -723,6 +729,8 @@ async function main() {
 
         ({ config, testSuite, basePath } = await resolveConfigs(cmdObj, defaultConfig));
         cliState.basePath = basePath;
+
+        console.warn('config', JSON.stringify(config, null, 2));
 
         let maxConcurrency = parseInt(cmdObj.maxConcurrency || '', 10);
         const delay = parseInt(cmdObj.delay || '', 0);

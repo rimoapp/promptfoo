@@ -218,4 +218,106 @@ def prompt2:
     expect(result[0]).toEqual({ raw: fileContents['1.txt'], label: fileContents['1.txt'] });
     expect(result[1]).toEqual({ raw: fileContents['2.txt'], label: fileContents['2.txt'] });
   });
+
+  it('readPrompts with non-existent file', async () => {
+    jest.mocked(fs.readFileSync).mockImplementation(() => {
+      throw new Error('File not found');
+    });
+    jest.mocked(fs.statSync).mockImplementation(() => {
+      throw new Error('File not found');
+    });
+    const promptPaths = ['nonexistent.txt'];
+    await expect(readPrompts(promptPaths)).rejects.toThrow('File not found');
+  });
+
+  it('readPrompts with mixed valid and invalid files', async () => {
+    jest.mocked(fs.readFileSync).mockImplementation((filePath: fs.PathOrFileDescriptor) => {
+      if (typeof filePath === 'string' && filePath.endsWith('valid.txt')) {
+        return 'Valid prompt';
+      } else {
+        throw new Error('File not found');
+      }
+    });
+    jest.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false });
+    const promptPaths = ['valid.txt', 'invalid.txt'];
+    const result = await readPrompts(promptPaths);
+
+    expect(fs.readFileSync).toHaveBeenCalledTimes(2);
+    expect(result).toEqual([toPrompt('Valid prompt')]);
+  });
+
+  it('readPrompts with function prompt object', async () => {
+    const code = `def prompt_func:
+    return 'Functional prompt'`;
+    jest.mocked(fs.readFileSync).mockReturnValue(code);
+
+    const prompts = [{ id: 'prompts.py:prompt_func', label: 'Functional prompt' }];
+    const result = await readPrompts(prompts);
+
+    expect(fs.readFileSync).toHaveBeenCalledTimes(1);
+    expect(result).toEqual([
+      {
+        raw: code,
+        label: 'Functional prompt',
+        function: expect.any(Function),
+      },
+    ]);
+  });
+
+  it('readPrompts with nested directory', async () => {
+    jest.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true });
+    jest.mocked(fs.readdirSync).mockReturnValue(['subdir']);
+    jest.mocked(fs.statSync).mockImplementation((filePath) => ({
+      isDirectory: () => filePath.includes('subdir'),
+    }));
+    jest.mocked(fs.readdirSync).mockImplementation((dirPath) => {
+      if (dirPath.includes('subdir')) {
+        return ['prompt1.txt', 'prompt2.txt'];
+      }
+      return [];
+    });
+    jest.mocked(fs.readFileSync).mockImplementation((filePath) => {
+      if (filePath.endsWith('prompt1.txt')) {
+        return 'Nested prompt 1';
+      } else if (filePath.endsWith('prompt2.txt')) {
+        return 'Nested prompt 2';
+      }
+    });
+
+    const promptPaths = ['prompts'];
+    const result = await readPrompts(promptPaths);
+
+    expect(fs.statSync).toHaveBeenCalledTimes(3); // One for the main dir, one for subdir, and one for files
+    expect(fs.readdirSync).toHaveBeenCalledTimes(2); // One for the main dir, one for subdir
+    expect(fs.readFileSync).toHaveBeenCalledTimes(2);
+    expect(result).toEqual([toPrompt('Nested prompt 1'), toPrompt('Nested prompt 2')]);
+  });
+
+  it('readPrompts with invalid JSONL file', async () => {
+    jest.mocked(fs.readFileSync).mockReturnValue('invalid json');
+    jest.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false });
+
+    const promptPaths = ['prompts.jsonl'];
+    await expect(readPrompts(promptPaths)).rejects.toThrow('Unexpected token');
+  });
+
+  it('readPrompts with empty directory', async () => {
+    jest.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true });
+    jest.mocked(fs.readdirSync).mockReturnValue([]);
+
+    const promptPaths = ['emptydir'];
+    await expect(readPrompts(promptPaths)).rejects.toThrow('There are no prompts in');
+  });
+
+  it('readPrompts with non-Python function in .py file', async () => {
+    const code = `non_python_code`;
+    jest.mocked(fs.readFileSync).mockReturnValue(code);
+    jest.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false });
+
+    const promptPaths = ['prompt.py'];
+    const result = await readPrompts(promptPaths);
+
+    expect(fs.readFileSync).toHaveBeenCalledTimes(1);
+    expect(result).toEqual([{ raw: code, label: code }]);
+  });
 });

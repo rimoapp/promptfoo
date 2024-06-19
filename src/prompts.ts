@@ -1,3 +1,10 @@
+/**
+ * This file contains utilities for reading and managing prompts used in various testing and operational scenarios.
+ * It includes functions to read prompt configurations from files or directories, handle different types of prompt inputs,
+ * and export predefined prompt templates for specific tasks. It also manages the mapping of provider-specific prompts
+ * based on a unified configuration.
+ */
+
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -30,6 +37,13 @@ export function readProviderPromptMap(
 ): TestSuite['providerPromptMap'] {
   const ret: Record<string, string[]> = {};
 
+  console.warn('---------------------')
+  console.warn('config.providers', config.providers)
+  console.warn('---------------------')
+  console.warn('parsedPrompts', parsedPrompts)
+  console.warn('---------------------')
+
+
   if (!config.providers) {
     return ret;
   }
@@ -48,6 +62,7 @@ export function readProviderPromptMap(
   }
 
   for (const provider of config.providers) {
+    console.warn('provider', provider)
     if (typeof provider === 'object') {
       // It's either a ProviderOptionsMap or a ProviderOptions
       if (provider.id) {
@@ -56,20 +71,21 @@ export function readProviderPromptMap(
           rawProvider.id,
           'You must specify an `id` on the Provider when you override options.prompts',
         );
-        ret[rawProvider.id] = rawProvider.prompts || allPrompts;
         if (rawProvider.label) {
           ret[rawProvider.label] = rawProvider.prompts || allPrompts;
+        } else if (rawProvider.id) {
+          ret[rawProvider.id] = rawProvider.prompts || allPrompts;
         }
       } else {
         const rawProvider = provider as ProviderOptionsMap;
         const originalId = Object.keys(rawProvider)[0];
         const providerObject = rawProvider[originalId];
-        const id = providerObject.id || originalId;
+        const id = providerObject.label ||providerObject.id || originalId;
         ret[id] = rawProvider[originalId].prompts || allPrompts;
       }
     }
   }
-
+  console.warn('ret', ret)
   return ret;
 }
 
@@ -149,7 +165,7 @@ export async function readPrompts(
       }
       resolvedPath = path.resolve(basePath, rawPath);
       resolvedPathToDisplay.set(resolvedPath, label);
-      const globbedPaths = globSync(resolvedPath.replace(/\\/g, '/'), {
+      const globbedPaths: string[] = globSync(resolvedPath.replace(/\\/g, '/'), {
         windowsPathsNoEscape: true,
       });
       logger.debug(
