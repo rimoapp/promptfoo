@@ -1,6 +1,6 @@
+import { del,get, set } from 'idb-keyval';
 import { create } from 'zustand';
-import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
-import { get, set, del } from 'idb-keyval';
+import { createJSONStorage, persist, StateStorage } from 'zustand/middleware';
 
 import type { EvaluateTable, UnifiedConfig } from './types';
 

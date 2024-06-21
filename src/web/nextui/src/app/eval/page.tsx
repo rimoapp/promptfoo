@@ -1,10 +1,11 @@
-import React from 'react';
-import Link from 'next/link';
-import { cookies } from 'next/headers';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import Link from 'next/link';
+import React from 'react';
+
+import { IS_RUNNING_LOCALLY, USE_SUPABASE } from '@/constants';
 
 import Eval from './Eval';
-import { IS_RUNNING_LOCALLY, USE_SUPABASE } from '@/constants';
 
 export const dynamic = IS_RUNNING_LOCALLY ? 'auto' : 'force-dynamic';
 

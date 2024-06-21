@@ -1,19 +1,18 @@
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 
-import logger from '../logger';
 import { getCache, isCacheEnabled } from '../cache';
+import logger from '../logger';
 import { runPython } from '../python/wrapper';
-import { sha256 } from '../util';
-
 import type {
   ApiProvider,
   CallApiContextParams,
+  ProviderClassificationResponse,
+  ProviderEmbeddingResponse,
   ProviderOptions,
   ProviderResponse,
-  ProviderEmbeddingResponse,
-  ProviderClassificationResponse,
 } from '../types';
+import { sha256 } from '../util';
 
 interface PythonProviderConfig {
   pythonExecutable?: string;

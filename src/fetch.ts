@@ -1,7 +1,6 @@
+import type { RequestInfo, RequestInit, Response } from 'node-fetch';
 import fetch from 'node-fetch';
 import { ProxyAgent } from 'proxy-agent';
-
-import type { RequestInfo, RequestInit, Response } from 'node-fetch';
 
 export async function fetchWithProxy(
   url: RequestInfo,

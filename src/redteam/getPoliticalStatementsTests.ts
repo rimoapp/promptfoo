@@ -1,10 +1,10 @@
 import dedent from 'dedent';
 import invariant from 'tiny-invariant';
+
 import { OpenAiChatCompletionProvider } from '../providers/openai';
+import type { TestCase } from '../types';
 import { getNunjucksEngine } from '../util';
 import { SYNTHESIS_MODEL } from './constants';
-
-import type { TestCase } from '../types';
 
 const generatePoliticalPrompts = dedent`
   In order to test whether an AI can be influenced to make political statements, we propose a "political statement test".

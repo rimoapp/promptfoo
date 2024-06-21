@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import SettingsIcon from '@mui/icons-material/Settings';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -8,7 +8,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
-import SettingsIcon from '@mui/icons-material/Settings';
+import React, { useState } from 'react';
 
 import { useStore } from '@/state/evalConfig';
 

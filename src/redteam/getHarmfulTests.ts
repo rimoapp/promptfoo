@@ -2,7 +2,6 @@ import dedent from 'dedent';
 import invariant from 'tiny-invariant';
 
 import PromptfooHarmfulCompletionProvider from '../providers/promptfoo';
-
 import type { TestCase } from '../types';
 
 const LLAMA_GUARD_REPLICATE_PROVIDER =

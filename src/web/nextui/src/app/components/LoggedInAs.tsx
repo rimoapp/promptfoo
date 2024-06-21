@@ -1,9 +1,9 @@
-import React from 'react';
-import Link from 'next/link';
 import Avatar from '@mui/material/Avatar';
+import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import IconButton from '@mui/material/IconButton';
+import Link from 'next/link';
+import React from 'react';
 
 import { useAuth } from '@/supabase-client';
 

@@ -1,13 +1,14 @@
-import Link from 'next/link';
+import './Navigation.css';
+
 import { Stack } from '@mui/material';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import Logo from './Logo';
-import LoggedInAs from './LoggedInAs';
-import DarkMode from './DarkMode';
 import { USE_SUPABASE } from '@/constants';
 
-import './Navigation.css';
+import DarkMode from './DarkMode';
+import LoggedInAs from './LoggedInAs';
+import Logo from './Logo';
 
 function NavLink({ href, label }: { href: string; label: string }) {
   const pathname = usePathname() || '';

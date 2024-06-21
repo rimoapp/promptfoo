@@ -1,10 +1,15 @@
 import * as fs from 'fs';
+import { globSync } from 'glob';
+import yaml from 'js-yaml';
 import * as path from 'path';
 
-import { globSync } from 'glob';
-
-import yaml from 'js-yaml';
-
+import type {
+  ApiProvider,
+  EvaluateResult,
+  EvaluateTable,
+  TestCase,
+  UnifiedConfig,
+} from '../src/types';
 import {
   dereferenceConfig,
   maybeRecordFirstRun,
@@ -20,14 +25,6 @@ import {
   writeMultipleOutputs,
   writeOutput,
 } from '../src/util';
-
-import type {
-  ApiProvider,
-  EvaluateResult,
-  EvaluateTable,
-  TestCase,
-  UnifiedConfig,
-} from '../src/types';
 
 jest.mock('proxy-agent', () => ({
   ProxyAgent: jest.fn().mockImplementation(() => ({})),

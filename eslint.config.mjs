@@ -1,11 +1,11 @@
 // @ts-check
 
 import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import globals from 'globals';
-
-import unusedImports from 'eslint-plugin-unused-imports';
 import jest from 'eslint-plugin-jest';
+import simpleImportSort from "eslint-plugin-simple-import-sort";
+import unusedImports from 'eslint-plugin-unused-imports';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default [
   ...tseslint.config(eslint.configs.recommended, ...tseslint.configs.recommended),
@@ -27,6 +27,8 @@ export default [
       '**/src/web/nextui/.next/**/*',
       '**/src/web/nextui/out/**/*',
       'dist/**/*',
+      'site/.docusaurus/**/*',
+      'site/build/**/*',
     ],
   },
   {
@@ -37,8 +39,11 @@ export default [
     },
     plugins: {
       'unused-imports': unusedImports,
+      "simple-import-sort": simpleImportSort,
     },
     rules: {
+      "simple-import-sort/imports": "error",
+      "simple-import-sort/exports": "error",
       '@typescript-eslint/ban-ts-comment': 0,
       '@typescript-eslint/ban-types': 0,
       '@typescript-eslint/no-explicit-any': 0,

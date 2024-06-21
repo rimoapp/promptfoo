@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validate as uuidValidate } from 'uuid';
 
+import type { EvaluateTable, FilePath, ResultsFile, UnifiedConfig } from '@/../../../types';
+import { deleteEval,readResult, updateResult } from '@/../../../util';
 import store from '@/app/api/eval/shareStore';
 import { IS_RUNNING_LOCALLY } from '@/constants';
-
-import type { EvaluateTable, FilePath, ResultsFile, UnifiedConfig } from '@/../../../types';
-import { readResult, updateResult, deleteEval } from '@/../../../util';
 
 export const dynamic = IS_RUNNING_LOCALLY ? 'auto' : 'force-dynamic';
 

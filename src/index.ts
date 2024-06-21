@@ -1,31 +1,30 @@
 import invariant from 'tiny-invariant';
 
 import assertions from './assertions';
-import providers, { loadApiProvider } from './providers';
-import telemetry from './telemetry';
 import * as cache from './cache';
 import { evaluate as doEvaluate } from './evaluator';
+import { readPrompts } from './prompts';
+import providers, { loadApiProvider } from './providers';
 import { loadApiProviders } from './providers';
+import telemetry from './telemetry';
 import { readTests } from './testCases';
-import {
-  readFilters,
-  writeResultsToDatabase,
-  writeMultipleOutputs,
-  writeOutput,
-  migrateResultsFromFileSystemToDatabase,
-} from './util';
 import type {
   EvaluateOptions,
-  TestSuite,
   EvaluateTestSuite,
-  ProviderOptions,
   PromptFunction,
+  ProviderOptions,
+  TestSuite,
 } from './types';
-import { readPrompts } from './prompts';
-
-export * from './types';
+import {
+  migrateResultsFromFileSystemToDatabase,
+  readFilters,
+  writeMultipleOutputs,
+  writeOutput,
+  writeResultsToDatabase,
+} from './util';
 
 export { generateTable } from './table';
+export * from './types';
 
 async function evaluate(testSuite: EvaluateTestSuite, options: EvaluateOptions = {}) {
   const constructedTestSuite: TestSuite = {
@@ -121,7 +120,7 @@ async function evaluate(testSuite: EvaluateTestSuite, options: EvaluateOptions =
   return ret;
 }
 
-export { evaluate, assertions, providers };
+export { assertions, evaluate, providers };
 
 export default {
   evaluate,

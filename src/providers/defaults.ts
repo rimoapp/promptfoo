@@ -1,18 +1,16 @@
+import { EnvOverrides } from '../types';
+import {
+  DefaultGradingJsonProvider as AnthropicGradingJsonProvider,
+  DefaultGradingProvider as AnthropicGradeProvider,
+  DefaultSuggestionsProvider as AnthropicSuggestionsProvider,
+} from './anthropic';
 import {
   DefaultEmbeddingProvider as OpenAiEmbeddingProvider,
   DefaultGradingJsonProvider as OpenAiGradingJsonProvider,
   DefaultGradingProvider as OpenAiGradingProvider,
-  DefaultSuggestionsProvider as OpenAiSuggestionsProvider,
   DefaultModerationProvider as OpenAiModerationProvider,
+  DefaultSuggestionsProvider as OpenAiSuggestionsProvider,
 } from './openai';
-
-import {
-  DefaultGradingProvider as AnthropicGradeProvider,
-  DefaultGradingJsonProvider as AnthropicGradingJsonProvider,
-  DefaultSuggestionsProvider as AnthropicSuggestionsProvider,
-} from './anthropic';
-
-import { EnvOverrides } from '../types';
 
 export function getDefaultProviders(env?: EnvOverrides) {
   const preferAnthropic =

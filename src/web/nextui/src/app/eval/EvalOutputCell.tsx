@@ -1,17 +1,16 @@
-import * as React from 'react';
-
-import ReactMarkdown from 'react-markdown';
-import { diffSentences, diffJson, diffWords } from 'diff';
 import Tooltip from '@mui/material/Tooltip';
+import { diffJson, diffSentences, diffWords } from 'diff';
+import * as React from 'react';
+import ReactMarkdown from 'react-markdown';
 
-import CommentDialog from '@/app/eval/TableCommentDialog';
 import CustomMetrics from '@/app/eval/CustomMetrics';
 import EvalOutputPromptDialog from '@/app/eval/EvalOutputPromptDialog';
 import FailReasonCarousel from '@/app/eval/FailReasonCarousel';
+import { useStore as useResultsViewStore } from '@/app/eval/store';
+import CommentDialog from '@/app/eval/TableCommentDialog';
 import TruncatedText from '@/app/eval/TruncatedText';
 import { EvaluateTableOutput } from '@/app/eval/types';
 import { useShiftKey } from '@/app/hooks/useShiftKey';
-import { useStore as useResultsViewStore } from '@/app/eval/store';
 
 function scoreToString(score: number | null) {
   if (score === null || score === 0 || score === 1) {

@@ -1,12 +1,12 @@
-import React from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
 } from '@mui/material';
+import React from 'react';
 
 interface PromptDialogProps {
   open: boolean;

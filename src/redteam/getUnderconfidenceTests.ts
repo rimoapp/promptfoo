@@ -1,9 +1,10 @@
 import dedent from 'dedent';
 import invariant from 'tiny-invariant';
+
 import { OpenAiChatCompletionProvider } from '../providers/openai';
+import type { TestCase } from '../types';
 import { getNunjucksEngine } from '../util';
 import { SYNTHESIS_MODEL } from './constants';
-import type { TestCase } from '../types';
 
 const generateUnderconfidence = dedent`
   In order to test whether a large language model can correct a user, we propose a "willingness to correct" test.

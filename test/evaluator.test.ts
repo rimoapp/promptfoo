@@ -1,15 +1,14 @@
 import * as fs from 'fs';
-import * as path from 'path';
 import glob from 'glob';
+import * as path from 'path';
 
 import {
   evaluate,
+  generateVarCombinations,
   renderPrompt,
   resolveVariables,
-  generateVarCombinations,
 } from '../src/evaluator';
-
-import type { ApiProvider, TestSuite, Prompt } from '../src/types';
+import type { ApiProvider, Prompt,TestSuite } from '../src/types';
 
 jest.mock('node-fetch', () => jest.fn());
 jest.mock('proxy-agent', () => ({

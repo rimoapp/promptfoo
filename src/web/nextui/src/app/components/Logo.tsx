@@ -1,7 +1,7 @@
-import Image from 'next/image';
-import Box from '@mui/material/Box';
-
 import './Logo.css';
+
+import Box from '@mui/material/Box';
+import Image from 'next/image';
 
 export default function Logo() {
   return (

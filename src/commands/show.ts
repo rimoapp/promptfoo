@@ -1,16 +1,16 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 
+import logger from '../logger';
+import { generateTable, wrapTable } from '../table';
+import telemetry from '../telemetry';
 import {
+  getDatasetFromHash,
   getEvalFromId,
   getPromptFromHash,
-  getDatasetFromHash,
   printBorder,
   setupEnv,
 } from '../util';
-import { generateTable, wrapTable } from '../table';
-import logger from '../logger';
-import telemetry from '../telemetry';
 
 export async function showCommand(program: Command) {
   const showCommand = program

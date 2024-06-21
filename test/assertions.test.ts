@@ -1,24 +1,22 @@
 import * as fs from 'fs';
+import { Response } from 'node-fetch';
 import * as path from 'path';
 
-import { Response } from 'node-fetch';
-
-import { runAssertions, runAssertion } from '../src/assertions';
+import { runAssertion,runAssertions } from '../src/assertions';
+import { fetchWithRetries } from '../src/fetch';
 import {
-  DefaultGradingJsonProvider,
   DefaultEmbeddingProvider,
+  DefaultGradingJsonProvider,
   OpenAiChatCompletionProvider,
 } from '../src/providers/openai';
 import { ReplicateModerationProvider } from '../src/providers/replicate';
-import { runPythonCode, runPython } from '../src/python/wrapper';
-import { fetchWithRetries } from '../src/fetch';
-
+import { runPython,runPythonCode } from '../src/python/wrapper';
 import type {
-  Assertion,
   ApiProvider,
+  Assertion,
   AtomicTestCase,
-  ProviderResponse,
   GradingResult,
+  ProviderResponse,
 } from '../src/types';
 import { TestGrader } from './utils';
 

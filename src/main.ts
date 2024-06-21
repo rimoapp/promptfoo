@@ -1,25 +1,45 @@
 #!/usr/bin/env node
+import chalk from 'chalk';
+import chokidar from 'chokidar';
+import { Command } from 'commander';
 import fs from 'fs';
+import yaml from 'js-yaml';
 import path from 'path';
 import readline from 'readline';
 
-import chalk from 'chalk';
-import chokidar from 'chokidar';
-import yaml from 'js-yaml';
-import { Command } from 'commander';
-
-import cliState from './cliState';
-import telemetry from './telemetry';
-import logger, { getLogLevel, setLogLevel } from './logger';
 import { readAssertions } from './assertions';
-import { loadApiProvider, loadApiProviders } from './providers';
-import { evaluate, DEFAULT_MAX_CONCURRENCY } from './evaluator';
+import { validateAssertions } from './assertions/validateAssertions';
+import { clearCache,disableCache } from './cache';
+import cliState from './cliState';
+import { deleteCommand } from './commands/delete';
+import { filterTests } from './commands/eval/filterTests';
+import { exportCommand } from './commands/export';
+import { importCommand } from './commands/import';
+import { listCommand } from './commands/list';
+import { showCommand } from './commands/show';
+import { getDirectory } from './esm';
+import { DEFAULT_MAX_CONCURRENCY,evaluate } from './evaluator';
+import { gatherFeedback } from './feedback';
+import logger, { getLogLevel, setLogLevel } from './logger';
+import { createDummyFiles } from './onboarding';
 import { readPrompts, readProviderPromptMap } from './prompts';
-import { readTest, readTests, synthesizeFromTestSuite } from './testCases';
+import { loadApiProvider, loadApiProviders } from './providers';
 import {
   DEFAULT_PLUGINS as REDTEAM_DEFAULT_PLUGINS,
   synthesizeFromTestSuite as redteamSynthesizeFromTestSuite,
 } from './redteam';
+import { createShareableUrl } from './share';
+import { generateTable } from './table';
+import telemetry from './telemetry';
+import { readTest, readTests, synthesizeFromTestSuite } from './testCases';
+import type {
+  CommandLineOptions,
+  EvaluateOptions,
+  TestCase,
+  TestSuite,
+  UnifiedConfig,
+} from './types';
+import { checkForUpdates } from './updates';
 import {
   cleanupOldFileResults,
   maybeReadConfig,
@@ -34,29 +54,7 @@ import {
   writeOutput,
   writeResultsToDatabase,
 } from './util';
-import { createDummyFiles } from './onboarding';
-import { disableCache, clearCache } from './cache';
-import { getDirectory } from './esm';
 import { BrowserBehavior, startServer } from './web/server';
-import { checkForUpdates } from './updates';
-import { gatherFeedback } from './feedback';
-import { listCommand } from './commands/list';
-import { showCommand } from './commands/show';
-import { deleteCommand } from './commands/delete';
-import { importCommand } from './commands/import';
-import { exportCommand } from './commands/export';
-
-import type {
-  CommandLineOptions,
-  EvaluateOptions,
-  TestCase,
-  TestSuite,
-  UnifiedConfig,
-} from './types';
-import { generateTable } from './table';
-import { createShareableUrl } from './share';
-import { filterTests } from './commands/eval/filterTests';
-import { validateAssertions } from './assertions/validateAssertions';
 
 async function resolveConfigs(
   cmdObj: Partial<CommandLineOptions>,

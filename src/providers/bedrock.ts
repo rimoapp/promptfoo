@@ -1,19 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk';
+import type { BedrockRuntime } from '@aws-sdk/client-bedrock-runtime';
 import dedent from 'dedent';
 
-import logger from '../logger';
 import { getCache, isCacheEnabled } from '../cache';
-import { parseMessages } from './anthropic';
-
-import type { BedrockRuntime } from '@aws-sdk/client-bedrock-runtime';
-
+import logger from '../logger';
 import type {
-  ApiProvider,
   ApiEmbeddingProvider,
+  ApiProvider,
   EnvOverrides,
-  ProviderResponse,
   ProviderEmbeddingResponse,
+  ProviderResponse,
 } from '../types.js';
+import { parseMessages } from './anthropic';
 import { parseChatPrompt } from './shared';
 
 interface BedrockOptions {

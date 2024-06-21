@@ -1,6 +1,6 @@
-import * as React from 'react';
-
 import './CustomMetrics.css';
+
+import * as React from 'react';
 
 interface CustomMetricsProps {
   lookup: Record<string, number>;

@@ -1,6 +1,6 @@
-import { EvaluateSummary, EvaluateTestSuite } from '@/../../../types';
-
 import type { SupabaseClient } from '@supabase/supabase-js';
+
+import { EvaluateSummary, EvaluateTestSuite } from '@/../../../types';
 import type { Database } from '@/types/supabase';
 
 export type SupabaseEvaluationJob = Database['public']['Tables']['EvaluationJob']['Row'];

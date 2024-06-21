@@ -1,20 +1,20 @@
 'use client';
 
-import React from 'react';
-import Container from '@mui/material/Container';
-import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
-import Chip from '@mui/material/Chip';
+import './Report.css';
 
-import RiskCategories from './RiskCategories';
-import Overview from './Overview';
-import TestSuites from './TestSuites';
+import Chip from '@mui/material/Chip';
+import Container from '@mui/material/Container';
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
+import React from 'react';
+
 import { getApiBaseUrl } from '@/api';
 
 import type { ResultsFile, SharedResults } from '../eval/types';
-
-import './Report.css';
 import { categoryAliases, categoryAliasesReverse } from './constants';
+import Overview from './Overview';
+import RiskCategories from './RiskCategories';
+import TestSuites from './TestSuites';
 
 const App: React.FC = () => {
   const [evalId, setEvalId] = React.useState<string | null>(null);

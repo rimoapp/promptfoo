@@ -1,10 +1,10 @@
-import React from 'react';
-import Stack from '@mui/material/Stack';
-
-import RiskCard from './RiskCard';
-import { TopLevelCategory, categoryDescriptions, riskCategories } from './constants';
-
 import './RiskCategories.css';
+
+import Stack from '@mui/material/Stack';
+import React from 'react';
+
+import { categoryDescriptions, riskCategories,TopLevelCategory } from './constants';
+import RiskCard from './RiskCard';
 
 const RiskCategories: React.FC<{
   categoryStats: Record<string, { pass: number; total: number }>;

@@ -1,8 +1,8 @@
 import chalk from 'chalk';
 
 import packageJson from '../package.json';
-import logger from './logger';
 import { fetchWithTimeout } from './fetch';
+import logger from './logger';
 import { maybeRecordFirstRun } from './util';
 
 type EventValue = string | number | boolean | string[];
