@@ -397,14 +397,15 @@ export async function loadApiProvider(
 }
 
 export default {
-  OpenAiCompletionProvider,
-  OpenAiChatCompletionProvider,
-  OpenAiAssistantProvider,
   AnthropicCompletionProvider,
-  ReplicateProvider,
-  LocalAiCompletionProvider,
-  LocalAiChatProvider,
+  AnthropicMessagesProvider,
   BAMChatProvider,
   BAMEmbeddingProvider,
   loadApiProvider,
+  LocalAiChatProvider,
+  LocalAiCompletionProvider,
+  OpenAiAssistantProvider,
+  OpenAiChatCompletionProvider,
+  OpenAiCompletionProvider,
+  ReplicateProvider,
 };
