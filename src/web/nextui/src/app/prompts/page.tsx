@@ -6,7 +6,7 @@ export default function Page() {
     <Suspense fallback={<div>Loading...</div>}>
       <div>
         <Prompts />
-    </div>
+      </div>
     </Suspense>
   );
 }
