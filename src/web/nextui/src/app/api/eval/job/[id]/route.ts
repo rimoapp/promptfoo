@@ -9,6 +9,10 @@ import evalJobs from '../evalJobsStore';
 
 export const dynamic = IS_RUNNING_LOCALLY ? 'auto' : 'force-dynamic';
 
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   if (IS_RUNNING_LOCALLY) {
     return NextResponse.json({ error: 'Not implemented' });
