@@ -1,7 +1,7 @@
 // @ts-check
 
 import eslint from '@eslint/js';
-import importPlugin from "eslint-plugin-import";
+import * as importPlugin from "eslint-plugin-import";
 import jest from 'eslint-plugin-jest';
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import unusedImports from 'eslint-plugin-unused-imports';
