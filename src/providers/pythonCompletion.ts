@@ -12,7 +12,7 @@ import type {
   ProviderOptions,
   ProviderResponse,
 } from '../types';
-import { sha256 } from '../util';
+import { safeJsonStringify, sha256 } from '../util';
 
 interface PythonProviderConfig {
   pythonExecutable?: string;
@@ -65,9 +65,7 @@ export class PythonProvider implements ApiProvider {
       const args =
         apiType === 'call_api' ? [prompt, this.options, context] : [prompt, this.options];
       logger.debug(
-        `Running python script ${absPath} with scriptPath ${this.scriptPath} and args: ${args.join(
-          '\n',
-        )}`,
+        `Running python script ${absPath} with scriptPath ${this.scriptPath} and args: ${safeJsonStringify(args)}`,
       );
       let result;
       switch (apiType) {

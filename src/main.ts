@@ -6,11 +6,13 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import path from 'path';
 import readline from 'readline';
+import invariant from 'tiny-invariant';
 
 import { readAssertions } from './assertions';
 import { validateAssertions } from './assertions/validateAssertions';
 import { clearCache,disableCache } from './cache';
 import cliState from './cliState';
+import { configCommand } from './commands/config';
 import { deleteCommand } from './commands/delete';
 import { filterTests } from './commands/eval/filterTests';
 import { exportCommand } from './commands/export';
@@ -114,6 +116,7 @@ async function resolveConfigs(
         ? false
         : fileConfig.sharing ?? defaultConfig.sharing ?? true,
     defaultTest: defaultTestRaw ? await readTest(defaultTestRaw, basePath) : undefined,
+    derivedMetrics: fileConfig.derivedMetrics || defaultConfig.derivedMetrics,
     outputPath: cmdObj.output || fileConfig.outputPath || defaultConfig.outputPath,
     metadata: fileConfig.metadata || defaultConfig.metadata,
   };
@@ -149,6 +152,20 @@ async function resolveConfigs(
         cmdObj.tests ? undefined : basePath,
       );
       scenario.tests = parsedScenarioTests;
+      const filteredTests = await filterTests(
+        {
+          ...scenario,
+          providers: parsedProviders,
+          prompts: parsedPrompts,
+        },
+        {
+          firstN: cmdObj.filterFirstN,
+          pattern: cmdObj.filterPattern,
+          failing: cmdObj.filterFailing,
+        },
+      );
+      invariant(filteredTests, 'filteredTests are undefined');
+      scenario.tests = filteredTests;
     }
   }
 
@@ -178,6 +195,7 @@ async function resolveConfigs(
     tests: parsedTests,
     scenarios: config.scenarios,
     defaultTest,
+    derivedMetrics: config.derivedMetrics,
     nunjucksFilters: await readFilters(
       fileConfig.nunjucksFilters || defaultConfig.nunjucksFilters || {},
     ),
@@ -924,6 +942,7 @@ async function main() {
   deleteCommand(program);
   importCommand(program);
   exportCommand(program);
+  configCommand(program);
 
   program.parse(process.argv);
 
