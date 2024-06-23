@@ -1,9 +1,9 @@
 // @ts-check
 
 import eslint from '@eslint/js';
-import * as importPlugin from "eslint-plugin-import";
+import * as importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
-import simpleImportSort from "eslint-plugin-simple-import-sort";
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import unusedImports from 'eslint-plugin-unused-imports';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -40,8 +40,8 @@ export default [
     },
     plugins: {
       'unused-imports': unusedImports,
-      "simple-import-sort": simpleImportSort,
-      "import": importPlugin,
+      'simple-import-sort': simpleImportSort,
+      import: importPlugin,
     },
     rules: {
       '@typescript-eslint/ban-ts-comment': 0,
@@ -54,10 +54,10 @@ export default [
       'no-empty': 0,
       'no-useless-escape': 0,
       'unused-imports/no-unused-imports': 'error',
-      "import/first": "error",
-      "import/newline-after-import": "error",
-      "simple-import-sort/exports": "error",
-      "simple-import-sort/imports": "error",
+      'import/first': 'error',
+      'import/newline-after-import': 'error',
+      'simple-import-sort/exports': 'error',
+      'simple-import-sort/imports': 'error',
     },
   },
   {

@@ -2,7 +2,7 @@ import { AzureOpenAiCompletionProvider } from '../src/providers/azureopenai';
 import { maybeEmitAzureOpenAiWarning } from '../src/providers/azureopenaiUtil';
 import { HuggingfaceTextGenerationProvider } from '../src/providers/huggingface';
 import { OpenAiCompletionProvider } from '../src/providers/openai';
-import type { TestCase,TestSuite } from '../src/types';
+import type { TestCase, TestSuite } from '../src/types';
 
 describe('maybeEmitAzureOpenAiWarning', () => {
   it('should not emit warning when no Azure providers are used', () => {

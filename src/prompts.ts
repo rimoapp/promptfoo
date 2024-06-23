@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import * as fs from 'fs';
 import { globSync } from 'glob';
 import * as path from 'path';
-import { Options as PythonShellOptions,PythonShell } from 'python-shell';
+import { Options as PythonShellOptions, PythonShell } from 'python-shell';
 import invariant from 'tiny-invariant';
 
 import { importModule } from './esm';

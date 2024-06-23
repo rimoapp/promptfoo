@@ -32,7 +32,7 @@ import type {
   RunEvalOptions,
   TestSuite,
 } from './types';
-import { getNunjucksEngine, renderVarsInObject,sha256, transformOutput } from './util';
+import { getNunjucksEngine, renderVarsInObject, sha256, transformOutput } from './util';
 
 export const DEFAULT_MAX_CONCURRENCY = 4;
 

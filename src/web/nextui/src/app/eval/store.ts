@@ -1,4 +1,4 @@
-import { del,get, set } from 'idb-keyval';
+import { del, get, set } from 'idb-keyval';
 import { create } from 'zustand';
 import { createJSONStorage, persist, StateStorage } from 'zustand/middleware';
 

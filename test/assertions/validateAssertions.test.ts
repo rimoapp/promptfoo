@@ -1,4 +1,4 @@
-import { AssertValiationError,validateAssertions } from '../../src/assertions/validateAssertions';
+import { AssertValiationError, validateAssertions } from '../../src/assertions/validateAssertions';
 import { TestCase } from '../../src/types';
 
 describe('validateAssertions', () => {

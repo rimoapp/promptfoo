@@ -1,7 +1,7 @@
 import { fetchWithCache } from '../cache';
 import logger from '../logger';
 import { ApiProvider, EnvOverrides, ProviderResponse, TokenUsage } from '../types';
-import { parseChatPrompt,REQUEST_TIMEOUT_MS } from './shared';
+import { parseChatPrompt, REQUEST_TIMEOUT_MS } from './shared';
 
 interface MistralChatCompletionOptions {
   apiKey?: string;

@@ -11,7 +11,7 @@ import type {
   ProviderEmbeddingResponse,
   ProviderResponse,
 } from '../types';
-import { parseChatPrompt,REQUEST_TIMEOUT_MS } from './shared';
+import { parseChatPrompt, REQUEST_TIMEOUT_MS } from './shared';
 
 /**
  * These are parameters that have nothing to do with model invocation

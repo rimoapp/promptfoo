@@ -2,7 +2,7 @@
 
 import './PageShell.css';
 
-import { createTheme,ThemeProvider } from '@mui/material/styles';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import React from 'react';
 

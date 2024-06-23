@@ -14,7 +14,7 @@ import Typography from '@mui/material/Typography';
 import { Gauge } from '@mui/x-charts/Gauge';
 import React from 'react';
 
-import { categoryAliases, displayNameOverrides,subCategoryDescriptions } from './constants';
+import { categoryAliases, displayNameOverrides, subCategoryDescriptions } from './constants';
 
 const RiskCard: React.FC<{
   title: string;

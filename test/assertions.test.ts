@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { Response } from 'node-fetch';
 import * as path from 'path';
 
-import { runAssertion,runAssertions } from '../src/assertions';
+import { runAssertion, runAssertions } from '../src/assertions';
 import { fetchWithRetries } from '../src/fetch';
 import {
   DefaultEmbeddingProvider,
@@ -10,7 +10,7 @@ import {
   OpenAiChatCompletionProvider,
 } from '../src/providers/openai';
 import { ReplicateModerationProvider } from '../src/providers/replicate';
-import { runPython,runPythonCode } from '../src/python/wrapper';
+import { runPython, runPythonCode } from '../src/python/wrapper';
 import type {
   ApiProvider,
   Assertion,

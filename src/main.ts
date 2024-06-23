@@ -10,7 +10,7 @@ import invariant from 'tiny-invariant';
 
 import { readAssertions } from './assertions';
 import { validateAssertions } from './assertions/validateAssertions';
-import { clearCache,disableCache } from './cache';
+import { clearCache, disableCache } from './cache';
 import cliState from './cliState';
 import { configCommand } from './commands/config';
 import { deleteCommand } from './commands/delete';
@@ -20,7 +20,7 @@ import { importCommand } from './commands/import';
 import { listCommand } from './commands/list';
 import { showCommand } from './commands/show';
 import { getDirectory } from './esm';
-import { DEFAULT_MAX_CONCURRENCY,evaluate } from './evaluator';
+import { DEFAULT_MAX_CONCURRENCY, evaluate } from './evaluator';
 import { gatherFeedback } from './feedback';
 import logger, { getLogLevel, setLogLevel } from './logger';
 import { createDummyFiles } from './onboarding';

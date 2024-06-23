@@ -3,7 +3,7 @@ import './RiskCategories.css';
 import Stack from '@mui/material/Stack';
 import React from 'react';
 
-import { categoryDescriptions, riskCategories,TopLevelCategory } from './constants';
+import { categoryDescriptions, riskCategories, TopLevelCategory } from './constants';
 import RiskCard from './RiskCard';
 
 const RiskCategories: React.FC<{

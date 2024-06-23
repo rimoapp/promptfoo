@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validate as uuidValidate } from 'uuid';
 
 import type { EvaluateTable, FilePath, ResultsFile, UnifiedConfig } from '@/../../../types';
-import { deleteEval,readResult, updateResult } from '@/../../../util';
+import { deleteEval, readResult, updateResult } from '@/../../../util';
 import store from '@/app/api/eval/shareStore';
 import { IS_RUNNING_LOCALLY } from '@/constants';
 

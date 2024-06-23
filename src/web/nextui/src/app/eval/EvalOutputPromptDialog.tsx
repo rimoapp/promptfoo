@@ -15,7 +15,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import TextareaAutosize from '@mui/material/TextareaAutosize';
 import Typography from '@mui/material/Typography';
-import { useEffect,useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { GradingResult } from './types';
 

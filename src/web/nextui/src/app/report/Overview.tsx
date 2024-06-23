@@ -6,7 +6,7 @@ import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import React from 'react';
 
-import { riskCategorySeverityMap,Severity } from './constants';
+import { riskCategorySeverityMap, Severity } from './constants';
 
 interface OverviewProps {
   categoryStats: Record<string, { pass: number; total: number }>;

@@ -8,7 +8,7 @@ import {
   renderPrompt,
   resolveVariables,
 } from '../src/evaluator';
-import type { ApiProvider, Prompt,TestSuite } from '../src/types';
+import type { ApiProvider, Prompt, TestSuite } from '../src/types';
 
 jest.mock('node-fetch', () => jest.fn());
 jest.mock('proxy-agent', () => ({

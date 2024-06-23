@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import yaml from 'js-yaml';
 
-import { maybeRecordFirstRun,readGlobalConfig, resetGlobalConfig } from '../src/globalConfig';
+import { maybeRecordFirstRun, readGlobalConfig, resetGlobalConfig } from '../src/globalConfig';
 
 jest.mock('fs', () => ({
   readFileSync: jest.fn(),

@@ -37,7 +37,7 @@ import {
 import { ScriptCompletionProvider } from '../src/providers/scriptCompletion';
 import { VoyageEmbeddingProvider } from '../src/providers/voyage';
 import { WebhookProvider } from '../src/providers/webhook';
-import type { ProviderFunction,ProviderOptionsMap } from '../src/types';
+import type { ProviderFunction, ProviderOptionsMap } from '../src/types';
 
 jest.mock('fs', () => ({
   readFileSync: jest.fn(),

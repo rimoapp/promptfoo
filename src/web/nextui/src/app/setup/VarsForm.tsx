@@ -1,4 +1,4 @@
-import { Box, Stack,TextField, Typography } from '@mui/material';
+import { Box, Stack, TextField, Typography } from '@mui/material';
 import React, { useEffect } from 'react';
 
 interface VarsFormProps {

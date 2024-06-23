@@ -15,7 +15,7 @@ import type {
   ProviderResponse,
   TokenUsage,
 } from '../types.js';
-import { renderVarsInObject , safeJsonStringify } from '../util';
+import { renderVarsInObject, safeJsonStringify } from '../util';
 import { OpenAiFunction, OpenAiTool } from './openaiUtil';
 import { parseChatPrompt, REQUEST_TIMEOUT_MS, toTitleCase } from './shared';
 

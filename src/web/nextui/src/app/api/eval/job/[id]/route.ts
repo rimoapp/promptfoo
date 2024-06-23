@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import invariant from 'tiny-invariant';
 
 import { IS_RUNNING_LOCALLY, USE_SUPABASE } from '@/constants';
-import { getJob, getResult, SupabaseEvaluationJob,SupabaseJobStatus } from '@/database';
+import { getJob, getResult, SupabaseEvaluationJob, SupabaseJobStatus } from '@/database';
 
 import evalJobs from '../evalJobsStore';
 

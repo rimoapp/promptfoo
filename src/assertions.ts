@@ -45,7 +45,7 @@ import {
   isGradingResult,
   type TestCase,
 } from './types';
-import { getNunjucksEngine,transformOutput } from './util';
+import { getNunjucksEngine, transformOutput } from './util';
 
 const ASSERTIONS_MAX_CONCURRENCY = process.env.PROMPTFOO_ASSERTIONS_MAX_CONCURRENCY
   ? parseInt(process.env.PROMPTFOO_ASSERTIONS_MAX_CONCURRENCY, 10)

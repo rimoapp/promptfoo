@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import fs from 'fs';
 
-import { evals,getDb } from '../database';
+import { evals, getDb } from '../database';
 import logger from '../logger';
 import telemetry from '../telemetry';
 

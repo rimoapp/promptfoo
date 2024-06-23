@@ -6,7 +6,7 @@ import type {
   ProviderEmbeddingResponse,
   ProviderResponse,
 } from '../types.js';
-import { parseChatPrompt,REQUEST_TIMEOUT_MS } from './shared';
+import { parseChatPrompt, REQUEST_TIMEOUT_MS } from './shared';
 
 interface LocalAiCompletionOptions {
   apiBaseUrl?: string;

@@ -12,7 +12,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import React, { useEffect,useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import { useStore } from '@/state/evalConfig';

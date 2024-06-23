@@ -1,4 +1,4 @@
-import { Box, Button, Dialog, DialogActions,DialogContent, DialogTitle } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import React, { useState } from 'react';
 
 import type { Assertion, TestCase } from '@/../../../types';

@@ -1,5 +1,8 @@
-import { getAndCheckProvider, getGradingProvider,   matchesAnswerRelevance,
-matchesClassification ,
+import {
+  getAndCheckProvider,
+  getGradingProvider,
+  matchesAnswerRelevance,
+  matchesClassification,
   matchesClosedQa,
   matchesContextFaithfulness,
   matchesContextRecall,
@@ -9,7 +12,12 @@ matchesClassification ,
   matchesSimilarity,
 } from '../src/matchers';
 import { HuggingfaceTextClassificationProvider } from '../src/providers/huggingface';
-import { DefaultEmbeddingProvider, DefaultGradingProvider,OpenAiChatCompletionProvider, OpenAiEmbeddingProvider  } from '../src/providers/openai';
+import {
+  DefaultEmbeddingProvider,
+  DefaultGradingProvider,
+  OpenAiChatCompletionProvider,
+  OpenAiEmbeddingProvider,
+} from '../src/providers/openai';
 import type {
   ApiProvider,
   GradingConfig,

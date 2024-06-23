@@ -4,7 +4,7 @@ import assertions from './assertions';
 import * as cache from './cache';
 import { evaluate as doEvaluate } from './evaluator';
 import { readPrompts } from './prompts';
-import providers, { loadApiProvider , loadApiProviders } from './providers';
+import providers, { loadApiProvider, loadApiProviders } from './providers';
 import telemetry from './telemetry';
 import { readTests } from './testCases';
 import type {

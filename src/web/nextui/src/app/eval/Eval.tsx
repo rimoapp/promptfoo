@@ -10,7 +10,7 @@ import { io as SocketIOClient } from 'socket.io-client';
 import invariant from 'tiny-invariant';
 
 import { REMOTE_API_BASE_URL } from '@/../../../constants';
-import type { EvaluateSummary, SharedResults,UnifiedConfig } from '@/../../../types';
+import type { EvaluateSummary, SharedResults, UnifiedConfig } from '@/../../../types';
 import { getApiBaseUrl } from '@/api';
 import { ShiftKeyProvider } from '@/app/contexts/ShiftKeyContext';
 import { IS_RUNNING_LOCALLY, USE_SUPABASE } from '@/constants';
