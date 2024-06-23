@@ -1,11 +1,16 @@
 [
   {
-    "role": "user",
+    "role": "system",
     "content": [
       {
         "type": "text",
-        "text": "What’s in this image?"
-      },
+        "text": "You are an expert at answering questions about images. Please write in a short, concise, and concise manner."
+      }
+    ]
+  },
+  {
+    "role": "user",
+    "content": [
       {
         "type": "image_url",
         "image_url": {
