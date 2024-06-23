@@ -27,8 +27,7 @@ import { getApiBaseUrl } from '@/api';
 import CustomMetrics from '@/app/eval/CustomMetrics';
 import EvalOutputPromptDialog from '@/app/eval/EvalOutputPromptDialog';
 import GenerateTestCases from '@/app/eval/GenerateTestCases';
-import { useStore as useMainStore } from '@/app/eval/store';
-import { useStore as useResultsViewStore } from '@/app/eval/store';
+import { useStore as useMainStore , useStore as useResultsViewStore } from '@/app/eval/store';
 import TruncatedText, { TruncatedTextProps } from '@/app/eval/TruncatedText';
 import { EvaluateTable,EvaluateTableOutput, EvaluateTableRow, FilterMode } from '@/app/eval/types';
 

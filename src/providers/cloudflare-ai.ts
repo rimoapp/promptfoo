@@ -3,6 +3,14 @@ import invariant from 'tiny-invariant';
 
 import { fetchWithCache } from '../cache';
 import logger from '../logger';
+import type {
+  ApiProvider,
+  CallApiContextParams,
+  CallApiOptionsParams,
+  EnvOverrides,
+  ProviderEmbeddingResponse,
+  ProviderResponse,
+} from '../types';
 import { parseChatPrompt,REQUEST_TIMEOUT_MS } from './shared';
 
 /**
@@ -37,15 +45,6 @@ export type ICloudflareTextGenerationOptions = {
 
 export type ICloudflareProviderConfig = ICloudflareProviderBaseConfig &
   ICloudflareTextGenerationOptions;
-
-import type {
-  ApiProvider,
-  CallApiContextParams,
-  CallApiOptionsParams,
-  EnvOverrides,
-  ProviderEmbeddingResponse,
-  ProviderResponse,
-} from '../types';
 
 export type ICloudflareSuccessResponse<SuccessData extends Record<string, unknown>> = {
   success: true;
