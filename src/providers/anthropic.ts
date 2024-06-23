@@ -175,6 +175,7 @@ export class AnthropicMessagesProvider implements ApiProvider {
     modelName: string,
     options: { id?: string; config?: AnthropicMessageOptions; env?: EnvOverrides } = {},
   ) {
+    // TODO: Why do we see Using unknown Anthropic model: claude-3-5-sonnet-20240620 ?
     if (!AnthropicMessagesProvider.ANTHROPIC_MODELS_NAMES.includes(modelName)) {
       logger.warn(`Using unknown Anthropic model: ${modelName}`);
     }

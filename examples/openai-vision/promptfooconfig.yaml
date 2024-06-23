@@ -1,7 +1,9 @@
-prompts: [prompt.json]
-providers: [openai:chat:gpt-4o]
+prompts:
+  - prompt.py:generate_prompt
+
+providers: [anthropic:messages:claude-3-5-sonnet-20240620] # openai:chat:gpt-4o,
 
 tests:
   - assert:
       - type: contains
-        value: 'boardwalk'
+        value: 'ant'
