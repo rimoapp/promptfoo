@@ -195,37 +195,7 @@ async function resolveConfigs(
   return { config, testSuite, basePath };
 }
 
-async function main() {
-  await checkForUpdates();
-
-  const pwd = process.cwd();
-  const potentialPaths = [
-    path.join(pwd, 'promptfooconfig.js'),
-    path.join(pwd, 'promptfooconfig.json'),
-    path.join(pwd, 'promptfooconfig.yaml'),
-    path.join(pwd, 'promptfooconfig.yml'),
-  ];
-  let defaultConfig: Partial<UnifiedConfig> = {};
-  let defaultConfigPath: string | undefined;
-  for (const _path of potentialPaths) {
-    const maybeConfig = await maybeReadConfig(_path);
-    if (maybeConfig) {
-      defaultConfig = maybeConfig;
-      defaultConfigPath = _path;
-      break;
-    }
-  }
-
-  const evaluateOptions: EvaluateOptions = {};
-  if (defaultConfig.evaluateOptions) {
-    evaluateOptions.generateSuggestions = defaultConfig.evaluateOptions.generateSuggestions;
-    evaluateOptions.maxConcurrency = defaultConfig.evaluateOptions.maxConcurrency;
-    evaluateOptions.showProgressBar = defaultConfig.evaluateOptions.showProgressBar;
-    evaluateOptions.interactiveProviders = defaultConfig.evaluateOptions.interactiveProviders;
-  }
-
-  const program = new Command();
-
+function setupVersionCommand(program: Command): void {
   program.option('--version', 'Print version', () => {
     const packageJson = JSON.parse(
       fs.readFileSync(path.join(getDirectory(), '../package.json'), 'utf8'),
@@ -233,7 +203,9 @@ async function main() {
     logger.info(packageJson.version);
     process.exit(0);
   });
+}
 
+function setupInitCommand(program: Command): void {
   program
     .command('init [directory]')
     .description('Initialize project with dummy files')
@@ -250,7 +222,9 @@ async function main() {
       });
       await telemetry.send();
     });
+}
 
+function setupViewCommand(program: Command): void {
   program
     .command('view [directory]')
     .description('Start browser ui')
@@ -296,7 +270,9 @@ async function main() {
         );
       },
     );
+}
 
+function setupShareCommand(program: Command): void {
   program
     .command('share')
     .description('Create a shareable URL of your most recent eval')
@@ -342,7 +318,9 @@ async function main() {
         );
       }
     });
+}
 
+function setupCacheCommand(program: Command): void {
   program
     .command('cache')
     .description('Manage cache')
@@ -360,14 +338,30 @@ async function main() {
       });
       await telemetry.send();
     });
+}
 
+function setupFeedbackCommand(program: Command): void {
   program
     .command('feedback [message]')
     .description('Send feedback to the promptfoo developers')
     .action((message?: string) => {
       gatherFeedback(message);
     });
+}
 
+interface RedteamCommandOptions {
+  config?: string;
+  output?: string;
+  write: boolean;
+  cache: boolean;
+  envFile?: string;
+  purpose?: string;
+  injectVar?: string;
+  plugins?: string[];
+  addPlugins?: string[];
+}
+
+function setupGenerateCommand(program: Command, defaultConfig: UnifiedConfig, defaultConfigPath: string): void {
   const generateCommand = program.command('generate').description('Generate synthetic data');
 
   generateCommand
@@ -468,18 +462,6 @@ async function main() {
         await telemetry.send();
       },
     );
-
-  interface RedteamCommandOptions {
-    config?: string;
-    output?: string;
-    write: boolean;
-    cache: boolean;
-    envFile?: string;
-    purpose?: string;
-    injectVar?: string;
-    plugins?: string[];
-    addPlugins?: string[];
-  }
 
   generateCommand
     .command('redteam')
@@ -591,7 +573,9 @@ async function main() {
         await telemetry.send();
       },
     );
+}
 
+function setupEvalCommand(program: Command, defaultConfig: UnifiedConfig, defaultConfigPath: string, evaluateOptions: EvaluateOptions): void {
   program
     .command('eval')
     .description('Evaluate prompts')
@@ -923,6 +907,48 @@ async function main() {
 
       await runEvaluation(true /* initialization */);
     });
+}
+
+async function main() {
+  await checkForUpdates();
+
+  const pwd = process.cwd();
+  const potentialPaths = [
+    path.join(pwd, 'promptfooconfig.js'),
+    path.join(pwd, 'promptfooconfig.json'),
+    path.join(pwd, 'promptfooconfig.yaml'),
+    path.join(pwd, 'promptfooconfig.yml'),
+  ];
+  let defaultConfig: Partial<UnifiedConfig> = {};
+  let defaultConfigPath: string | undefined;
+  for (const _path of potentialPaths) {
+    const maybeConfig = await maybeReadConfig(_path);
+    if (maybeConfig) {
+      defaultConfig = maybeConfig;
+      defaultConfigPath = _path;
+      break;
+    }
+  }
+
+  const evaluateOptions: EvaluateOptions = {};
+  if (defaultConfig.evaluateOptions) {
+    evaluateOptions.generateSuggestions = defaultConfig.evaluateOptions.generateSuggestions;
+    evaluateOptions.maxConcurrency = defaultConfig.evaluateOptions.maxConcurrency;
+    evaluateOptions.showProgressBar = defaultConfig.evaluateOptions.showProgressBar;
+    evaluateOptions.interactiveProviders = defaultConfig.evaluateOptions.interactiveProviders;
+  }
+
+  const program = new Command();
+
+  setupVersionCommand(program);
+  setupInitCommand(program);
+
+  setupViewCommand(program);
+  setupShareCommand(program);
+  setupCacheCommand(program);
+  setupFeedbackCommand(program);
+  setupGenerateCommand(program, defaultConfig, defaultConfigPath);
+  setupEvalCommand(program, defaultConfig, defaultConfigPath, evaluateOptions);
 
   listCommand(program);
   showCommand(program);
@@ -938,4 +964,6 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
