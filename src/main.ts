@@ -402,16 +402,21 @@ async function main() {
     .option('--numTestCasesPerPersona <number>', 'Number of test cases per persona', '3')
     .option('--no-cache', 'Do not read or write results to disk cache', false)
     .option('--env-file <path>', 'Path to .env file')
+    .option(
+      '--provider <provider>',
+      `Provider to use for generating test cases. Defaults to: ${REDTEAM_MODEL}`,
+    )
     .action(
       async (options: {
+        cache: boolean;
         config?: string;
+        envFile?: string;
         instructions?: string;
-        output?: string;
         numPersonas: string;
         numTestCasesPerPersona: string;
+        output?: string;
+        provider?: string;
         write: boolean;
-        cache: boolean;
-        envFile?: string;
       }) => {
         setupEnv(options.envFile);
         if (!options.cache) {
