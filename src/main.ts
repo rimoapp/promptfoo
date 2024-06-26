@@ -1,5 +1,14 @@
 #!/usr/bin/env node
+
+import logger, { getLogLevel, setLogLevel } from './logger';
 import chalk from 'chalk';
+// process.version looks like v18.19.1
+const majorVersion = parseInt(process.version.split('.')[0].substring(1))
+if (majorVersion < 18) {
+  logger.warn(chalk.yellow(`You are using Node.js ${majorVersion}.x. This version is no longer supported. Please upgrade to Node.js 18.x or later.`));
+  process.exit(1);
+}
+
 import chokidar from 'chokidar';
 import { Command } from 'commander';
 import dedent from 'dedent';
@@ -22,7 +31,6 @@ import { showCommand } from './commands/show';
 import { getDirectory } from './esm';
 import { evaluate, DEFAULT_MAX_CONCURRENCY } from './evaluator';
 import { gatherFeedback } from './feedback';
-import logger, { getLogLevel, setLogLevel } from './logger';
 import { createDummyFiles } from './onboarding';
 import { readPrompts, readProviderPromptMap } from './prompts';
 import { loadApiProvider, loadApiProviders } from './providers';
