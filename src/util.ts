@@ -160,14 +160,34 @@ export async function dereferenceConfig(rawConfig: UnifiedConfig): Promise<Unifi
   return config;
 }
 
+/**
+ * Reads and parses a configuration file.
+ *
+ * @param {string} configPath - The path to the configuration file or directory.
+ * @returns {Promise<UnifiedConfig>} - A promise that resolves to the parsed configuration object.
+ * @throws Will throw an error if the configuration file format is unsupported or if no configuration file is found in the directory.
+ */
 export async function readConfig(configPath: string): Promise<UnifiedConfig> {
-  const ext = path.parse(configPath).ext;
+  console.error(`----------------`);
+  console.error(configPath);
+  console.error(`----------------`);
+  if (fs.statSync(configPath).isDirectory()) {
+    const files = fs.readdirSync(configPath);
+    const configFile = files.find((file) => file.startsWith('promptfooconfig'));
+    if (!configFile) {
+      throw new Error(`No configuration file found in ${configPath}`);
+    }
+    configPath = path.join(configPath, configFile);
+  }
+
+  const ext = path.extname(configPath);
+  const rawConfig = fs.readFileSync(configPath, 'utf-8');
+
   switch (ext) {
     case '.json':
     case '.yaml':
     case '.yml':
-      const rawConfig = yaml.load(fs.readFileSync(configPath, 'utf-8')) as UnifiedConfig;
-      return dereferenceConfig(rawConfig);
+      return dereferenceConfig(yaml.load(rawConfig) as UnifiedConfig);
     case '.js':
     case '.cjs':
     case '.mjs':

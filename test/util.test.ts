@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import { globSync } from 'glob';
 import * as path from 'path';
+import yaml from 'js-yaml';
 import type {
   ApiProvider,
   EvaluateResult,
@@ -11,6 +12,7 @@ import type {
 import {
   dereferenceConfig,
   providerToIdentifier,
+  readConfig,
   readConfigs,
   readFilters,
   readOutput,
@@ -555,6 +557,102 @@ describe('util', () => {
         'prompt3',
         'prompt4',
       ]);
+    });
+  });
+
+  fdescribe('readConfig', () => {
+    fit('reads a JSON configuration file', async () => {
+      const mockConfig = {
+        description: 'test',
+        providers: ['provider1'],
+        prompts: ['prompt1'],
+        tests: ['test1'],
+        defaultTest: {
+          description: 'defaultTest1',
+          vars: { var1: 'value1' },
+          assert: [{ type: 'equals', value: 'expected1' }],
+        },
+        nunjucksFilters: { filter1: 'filter1' },
+        env: { envVar1: 'envValue1' },
+        evaluateOptions: { maxConcurrency: 1 },
+        commandLineOptions: { verbose: true },
+        sharing: false,
+      };
+      jest.mocked(fs.statSync).mockReturnValueOnce({ isDirectory: () => false } as fs.Stats);
+      jest.mocked(fs.readFileSync).mockReturnValueOnce(JSON.stringify(mockConfig));
+      await expect(readConfig('config.json')).resolves.toEqual(dereferenceConfig(mockConfig as UnifiedConfig));
+    });
+  
+    it('reads a YAML configuration file', async () => {
+      const mockConfig = {
+        description: 'test',
+        providers: ['provider1'],
+        prompts: ['prompt1'],
+        tests: ['test1'],
+        scenarios: ['scenario1'],
+        defaultTest: {
+          description: 'defaultTest1',
+          vars: { var1: 'value1' },
+          assert: [{ type: 'equals', value: 'expected1' }],
+        },
+        nunjucksFilters: { filter1: 'filter1' },
+        env: { envVar1: 'envValue1' },
+        evaluateOptions: { maxConcurrency: 1 },
+        commandLineOptions: { verbose: true },
+        sharing: false,
+      };
+  
+      jest.spyOn(fs, 'readFileSync').mockReturnValueOnce(yaml.dump(mockConfig));
+      jest.spyOn(fs, 'statSync').mockReturnValueOnce({ isDirectory: () => false } as fs.Stats);
+  
+      const result = await readConfig('config.yaml');
+  
+      expect(result).toEqual(dereferenceConfig(mockConfig));
+    });
+  
+    it('throws an error for unsupported configuration file formats', async () => {
+      jest.spyOn(fs, 'statSync').mockReturnValueOnce({ isDirectory: () => false } as fs.Stats);
+  
+      await expect(readConfig('config.unsupported')).rejects.toThrow(
+        'Unsupported configuration file format: .unsupported'
+      );
+    });
+  
+    it('reads a configuration file from a directory', async () => {
+      const mockConfig = {
+        description: 'test',
+        providers: ['provider1'],
+        prompts: ['prompt1'],
+        tests: ['test1'],
+        scenarios: ['scenario1'],
+        defaultTest: {
+          description: 'defaultTest1',
+          vars: { var1: 'value1' },
+          assert: [{ type: 'equals', value: 'expected1' }],
+        },
+        nunjucksFilters: { filter1: 'filter1' },
+        env: { envVar1: 'envValue1' },
+        evaluateOptions: { maxConcurrency: 1 },
+        commandLineOptions: { verbose: true },
+        sharing: false,
+      };
+  
+      jest.spyOn(fs, 'readdirSync').mockReturnValueOnce(['promptfooconfig.json']);
+      jest.spyOn(fs, 'readFileSync').mockReturnValueOnce(JSON.stringify(mockConfig));
+      jest.spyOn(fs, 'statSync').mockReturnValueOnce({ isDirectory: () => true } as fs.Stats);
+  
+      const result = await readConfig('configDir');
+  
+      expect(result).toEqual(dereferenceConfig(mockConfig));
+    });
+  
+    it('throws an error if no configuration file is found in the directory', async () => {
+      jest.spyOn(fs, 'readdirSync').mockReturnValueOnce([]);
+      jest.spyOn(fs, 'statSync').mockReturnValueOnce({ isDirectory: () => true } as fs.Stats);
+  
+      await expect(readConfig('configDir')).rejects.toThrow(
+        'No configuration file found in configDir'
+      );
     });
   });
 
