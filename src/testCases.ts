@@ -17,6 +17,7 @@ import type {
   TestSuiteConfig,
   VarMapping,
 } from './types';
+import dedent from 'dedent';
 
 const SYNTHESIZE_DEFAULT_PROVIDER = 'gpt-4-0125-preview';
 
@@ -214,11 +215,12 @@ export async function readTests(
 }
 
 interface SynthesizeOptions {
-  prompts: string[];
   instructions?: string;
-  tests: TestCase[];
   numPersonas?: number;
   numTestCasesPerPersona?: number;
+  prompts: string[];
+  provider?: string;
+  tests: TestCase[];
 }
 
 export async function synthesizeFromTestSuite(
@@ -233,11 +235,12 @@ export async function synthesizeFromTestSuite(
 }
 
 export async function synthesize({
-  prompts,
   instructions,
-  tests,
   numPersonas,
   numTestCasesPerPersona,
+  prompts,
+  provider: providerName,
+  tests,
 }: SynthesizeOptions) {
   if (prompts.length < 1) {
     throw new Error('Dataset synthesis requires at least one prompt.');
@@ -260,25 +263,31 @@ export async function synthesize({
 
   // Consider the following prompt for an LLM application: {{prompt}}. List up to 5 user personas that would send this prompt.
   logger.debug(`\nGenerating user personas from ${prompts.length} prompts...`);
-  const provider = new OpenAiChatCompletionProvider(SYNTHESIZE_DEFAULT_PROVIDER, {
+
+  const provider = await loadApiProvider(providerName || SYNTHESIZE_DEFAULT_PROVIDER);
+
+  /*
+  const provider2 = new OpenAiChatCompletionProvider(SYNTHESIZE_DEFAULT_PROVIDER, {
     config: {
       temperature: 1.0,
       response_format: {
         type: 'json_object',
       },
     },
-  });
-  const promptsString = `<Prompts>
-${prompts.map((prompt) => `<Prompt>\n${prompt}\n</Prompt>`).join('\n')}
-</Prompts>`;
-  const resp = await provider.callApi(
-    `Consider the following prompt${prompts.length > 1 ? 's' : ''} for an LLM application:
-${promptsString}
+  }); */
 
-List up to ${numPersonas} user personas that would send ${
-      prompts.length > 1 ? 'these prompts' : 'this prompt'
-    }. Your response should be JSON of the form {personas: string[]}`,
-  );
+  const promptsString = dedent`<Prompts>
+    ${prompts.map((prompt) => `<Prompt>\n${prompt}\n</Prompt>`).join('\n')}
+    </Prompts>`;
+
+  const resp = await provider.callApi(
+    dedent`Consider the following prompt${prompts.length > 1 ? 's' : ''} for an LLM application:
+    ${promptsString}
+
+    List up to ${numPersonas} user personas that would send ${
+          prompts.length > 1 ? 'these prompts' : 'this prompt'
+        }. Your response should be JSON of the form {personas: string[]}`,
+      );
 
   const personas = (JSON.parse(resp.output as string) as { personas: string[] }).personas;
   logger.debug(
@@ -311,9 +320,9 @@ List up to ${numPersonas} user personas that would send ${
         if (!test.vars) {
           return;
         }
-        return `<Test>
-${JSON.stringify(test.vars, null, 2)}
-</Test>
+        return dedent`<Test>
+          ${JSON.stringify(test.vars, null, 2)}
+          </Test>
     `;
       })
       .filter(Boolean)
@@ -326,27 +335,27 @@ ${JSON.stringify(test.vars, null, 2)}
     const persona = personas[i];
     logger.debug(`\nGenerating test cases for persona ${i + 1}...`);
     // Construct the prompt for the LLM to generate variable values
-    const personaPrompt = `Consider ${
+    const personaPrompt = dedent`Consider ${
       prompts.length > 1 ? 'these prompts' : 'this prompt'
     }, which contains some {{variables}}: 
-${promptsString}
+        ${promptsString}
 
-This is your persona:
-<Persona>
-${persona}
-</Persona>
+        This is your persona:
+        <Persona>
+        ${persona}
+        </Persona>
 
-${existingTests}
+        ${existingTests}
 
-Fully embody this persona and determine a value for each variable, such that the prompt would be sent by this persona.
+        Fully embody this persona and determine a value for each variable, such that the prompt would be sent by this persona.
 
-You are a tester, so try to think of ${numTestCasesPerPersona} sets of values that would be interesting or unusual to test. ${
-      instructions || ''
-    }
+        You are a tester, so try to think of ${numTestCasesPerPersona} sets of values that would be interesting or unusual to test. ${
+              instructions || ''
+            }
 
-Your response should contain a JSON map of variable names to values, of the form {vars: {${Array.from(
-      variables,
-    )
+        Your response should contain a JSON map of variable names to values, of the form {vars: {${Array.from(
+              variables,
+            )
       .map((varName) => `${varName}: string`)
       .join(', ')}}[]}`;
     // Call the LLM API with the constructed prompt

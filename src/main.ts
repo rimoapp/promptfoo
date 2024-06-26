@@ -397,18 +397,23 @@ async function main() {
     .option('-w, --write', 'Write results to promptfoo configuration file')
     .option('--numPersonas <number>', 'Number of personas to generate', '5')
     .option('--numTestCasesPerPersona <number>', 'Number of test cases per persona', '3')
+    .option(
+      '--provider <provider>',
+      `Provider to use for generating synthetic data.`, // TODO: List providers
+    )
     .option('--no-cache', 'Do not read or write results to disk cache', false)
     .option('--env-file <path>', 'Path to .env file')
     .action(
       async (options: {
+        cache: boolean;
         config?: string;
+        envFile?: string;
         instructions?: string;
-        output?: string;
         numPersonas: string;
         numTestCasesPerPersona: string;
+        output?: string;
+        provider?: string;
         write: boolean;
-        cache: boolean;
-        envFile?: string;
       }) => {
         setupEnv(options.envFile);
         if (!options.cache) {
@@ -439,6 +444,7 @@ async function main() {
         await telemetry.send();
 
         const results = await synthesizeFromTestSuite(testSuite, {
+          provider: options.provider,
           instructions: options.instructions,
           numPersonas: parseInt(options.numPersonas, 10),
           numTestCasesPerPersona: parseInt(options.numTestCasesPerPersona, 10),
