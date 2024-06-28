@@ -20,6 +20,7 @@ import { exportCommand } from './commands/export';
 import { importCommand } from './commands/import';
 import { listCommand } from './commands/list';
 import { showCommand } from './commands/show';
+import { setupVersionCommand } from './commands/version';
 import { getDirectory } from './esm';
 import { evaluate, DEFAULT_MAX_CONCURRENCY } from './evaluator';
 import { gatherFeedback } from './feedback';
@@ -242,13 +243,7 @@ async function main() {
 
   const program = new Command();
 
-  program.option('--version', 'Print version', () => {
-    const packageJson = JSON.parse(
-      fs.readFileSync(path.join(getDirectory(), '../package.json'), 'utf8'),
-    );
-    logger.info(packageJson.version);
-    process.exit(0);
-  });
+  setupVersionCommand(program);
 
   program
     .command('init [directory]')
