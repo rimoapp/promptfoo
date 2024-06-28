@@ -6,7 +6,6 @@ import dedent from 'dedent';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import path from 'path';
-import readline from 'readline';
 import invariant from 'tiny-invariant';
 import { readAssertions } from './assertions';
 import { validateAssertions } from './assertions/validateAssertions';
@@ -20,6 +19,7 @@ import { exportCommand } from './commands/export';
 import { importCommand } from './commands/import';
 import { setupInitCommand } from './commands/init';
 import { listCommand } from './commands/list';
+import { setupShareCommand } from './commands/share';
 import { showCommand } from './commands/show';
 import { setupVersionCommand } from './commands/version';
 import { evaluate, DEFAULT_MAX_CONCURRENCY } from './evaluator';
@@ -52,7 +52,6 @@ import {
   printBorder,
   readConfigs,
   readFilters,
-  readLatestResults,
   setConfigDirectoryPath,
   setupEnv,
   writeMultipleOutputs,
@@ -291,51 +290,7 @@ async function main() {
       },
     );
 
-  program
-    .command('share')
-    .description('Create a shareable URL of your most recent eval')
-    .option('-y, --yes', 'Skip confirmation')
-    .option('--env-file <path>', 'Path to .env file')
-    .action(async (cmdObj: { yes: boolean; envFile?: string } & Command) => {
-      setupEnv(cmdObj.envFile);
-      telemetry.maybeShowNotice();
-      telemetry.record('command_used', {
-        name: 'share',
-      });
-      await telemetry.send();
-
-      const createPublicUrl = async () => {
-        const latestResults = await readLatestResults();
-        if (!latestResults) {
-          logger.error('Could not load results. Do you need to run `promptfoo eval` first?');
-          process.exit(1);
-        }
-        const url = await createShareableUrl(latestResults.results, latestResults.config);
-        logger.info(`View results: ${chalk.greenBright.bold(url)}`);
-      };
-
-      if (cmdObj.yes || process.env.PROMPTFOO_DISABLE_SHARE_WARNING) {
-        createPublicUrl();
-      } else {
-        const reader = readline.createInterface({
-          input: process.stdin,
-          output: process.stdout,
-        });
-
-        reader.question(
-          'Create a private shareable URL of your most recent eval?\n\nTo proceed, please confirm [Y/n] ',
-          async function (answer: string) {
-            if (answer.toLowerCase() !== 'yes' && answer.toLowerCase() !== 'y' && answer !== '') {
-              reader.close();
-              process.exit(1);
-            }
-            reader.close();
-
-            createPublicUrl();
-          },
-        );
-      }
-    });
+  setupShareCommand(program);
 
   program
     .command('cache')
