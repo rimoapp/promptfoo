@@ -18,14 +18,13 @@ import { deleteCommand } from './commands/delete';
 import { filterTests } from './commands/eval/filterTests';
 import { exportCommand } from './commands/export';
 import { importCommand } from './commands/import';
+import { setupInitCommand } from './commands/init';
 import { listCommand } from './commands/list';
 import { showCommand } from './commands/show';
 import { setupVersionCommand } from './commands/version';
-import { getDirectory } from './esm';
 import { evaluate, DEFAULT_MAX_CONCURRENCY } from './evaluator';
 import { gatherFeedback } from './feedback';
 import logger, { getLogLevel, setLogLevel } from './logger';
-import { createDummyFiles } from './onboarding';
 import { readPrompts, readProviderPromptMap } from './prompts';
 import { loadApiProvider, loadApiProviders } from './providers';
 import {
@@ -244,23 +243,7 @@ async function main() {
   const program = new Command();
 
   setupVersionCommand(program);
-
-  program
-    .command('init [directory]')
-    .description('Initialize project with dummy files')
-    .option('--no-interactive', 'Run in interactive mode')
-    .action(async (directory: string | null, cmdObj: { interactive: boolean }) => {
-      telemetry.maybeShowNotice();
-      telemetry.record('command_used', {
-        name: 'init - started',
-      });
-      const details = await createDummyFiles(directory, cmdObj.interactive);
-      telemetry.record('command_used', {
-        ...details,
-        name: 'init',
-      });
-      await telemetry.send();
-    });
+  setupInitCommand(program);
 
   program
     .command('view [directory]')
